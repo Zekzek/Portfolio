@@ -1,0 +1,376 @@
+<!--
+    TODO: add more personal projects
+    TODO: add date range display
+    TODO: add contact info?
+    TODO: hosting?
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Albert Bueche IV</title>
+    <link rel="stylesheet" href="index.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
+</head>
+<body>
+    <div class="sidebar">
+        <h1>Al Bueche IV</h1>
+        <h2>Game Software Engineer</h2>
+
+        <h3>Languages</h3>
+        <div id="csharp_filter" class="five star">C#</div>
+        <div id="java_filter" class="four star">Java</div>
+        <div id="js_filter" class="four star">Javascript</div>
+        <div id="c_filter" class="three star">C/C++</div>
+        <div id="python_filter" class="two star">Python</div>
+        <div id="sql_filter" class="two star">SQL</div>
+
+        <h3>Tech & Tools</h3>
+        <div id="unity_filter" class="five star">Unity</div>
+        <div id="git_filter" class="four star">git</div>
+        <div id="jira_filter" class="four star">Jira</div>
+        <div id="vs_filter" class="four star">Visual Studio</div>
+        <div id="intellij_filter" class="four star">IntelliJ</div>
+        <div id="eclipse_filter" class="four star">Eclipse</div>
+        <div id="perforce_filter" class="three star">Perforce</div>
+        <div id="jenkins_filter" class="three star">Jenkins</div>
+        <div id="rally_filter" class="three star">Rally</div>
+        <div id="aws_filter" class="two star">AWS</div>
+        <div id="redis_filter" class="two star">Redis</div>
+        <div id="mongo_filter" class="two star">MongoDB</div>
+        <div id="gamemaker_filter" class="two star">Gamemaker</div>
+        <div id="clearcase_filter" class="one star">Clearcase</div>
+
+        <a href="https://ldjam.com/users/al-bueche/games" target="_blank">Ludum Dare</a>
+        <a href="assets/Al_Bueche_Resume.pdf" target="_blank">Resume</a>    
+    </div>
+
+    <div class="main-section">
+        <p>Passionate software engineer with over 12 years of experience looking to
+            create extraordinary games. Committed to continuous learning and applying
+            innovative solutions to deliver engaging player experiences.</p>
+        <div id="ea" class="unity csharp python perforce git jenkins jira aws intellij  game mobile">
+            <h3 class="collapse-header">Software Engineer 2 at Electronic Arts</h3>
+            <div class="collapse-content">   
+                <div id="ea_precommit" class="python perforce jenkins">
+                    <h4 class="collapse-header">Pre-Commit</h4>
+                    <ul class="collapse-content">
+                        <li>Respond to an engineering request for more timely automated testing</li>
+                        <ul>
+                            <li>Design and implement a framework to run an extendable set of tests</li>
+                        </ul>
+                        <li>Each test checks the changed file list to determine if it needs to run</li>
+                        <li>Integrate with Jenkins to run tests when peer reviews are requested</li>
+                        <li>Support tests written by the client, server, and tooling teams</li>
+                    </ul>
+                </div>
+
+                <div id="ea_awsdevicefarm" class="aws jenkins perforce intellij mobile">
+                    <h4 class="collapse-header">AWS Device Farm</h4>
+                    <ul class="collapse-content">
+                        <li>Compare and report on costs vs maintaining a decaying onsite device farm</li>
+                        <li>Prove out a solution by locally building and running commands</li>
+                        <li>Instrument testing on AWS device farm during existing Jenkins test runs</li>
+                    </ul>
+                </div>
+
+                <div id="ea_recordandplay" class="unity csharp intellij jenkins game mobile">
+                    <h4 class="collapse-header">Record & Play</h4>
+                    <ul class="collapse-content">
+                        <li>Identify a QA need to reduce repetitive manual testing</li>
+                        <li>Suggest an approach of recording live gameplay and gather requirements</li>
+                        <li>Design and implement a tool to capture gameplay steps, then integrate with an existing automation solution to replay them during automated testing runs</li>
+                        <li>Demonstrate and promote the tool to QA</li>
+                        <li>Offer support and extend functionality to support more environments</li>
+                    </ul>
+                </div>
+
+                <div id="ea_testreporting" class="csharp jira perforce intellij">
+                    <h4 class="collapse-header">Additional Test Reporting</h4>
+                    <ul class="collapse-content">
+                        <li>Respond to a QA request for more accessible test logging</li>
+                        <li>Prototype and later refine a solution to report automated test results directly to the QA test tracking tool, Zephyr</li>
+                    </ul>
+                </div>
+
+                <div id="ea_testautomation" class="unity csharp perforce intellij git mobile">
+                    <h4 class="collapse-header">Improve Test Automation</h4>
+                    <ul class="collapse-content">
+                        <li>Replace frequent polling with a more performant relay of real-time updates</li>
+                        <ul>
+                            <li>Batch frequent messages to avoid flooding the network</li>
+                        </ul>
+                        <li>Refactor to reduce code duplication and simplify messaging</li>
+                        <li>Increase testing up-time from 30% to 95%</li>
+                        <li>Port existing automation framework to support a new title</li>
+                        <li>Collaborate to support test automation for 5 mobile titles</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div id="ironhorse" class="gamemaker unity csharp git vs game mobile">
+            <h3 class="collapse-header">Full Stack Software Engineer at Iron Horse Games</h3>
+            <div class="collapse-content">
+                <div id="ironhorse_steamtown" class="gamemaker git game mobile">
+                    <h4 class="collapse-header">Steam Town</h4>
+                    <ul class="collapse-content">
+                        <li>Quickly ramp up on a new project and development platform with no support</li>
+                        <li>Upgrade UI with all new animations and resolutions</li>
+                        <li>Refactor to reduce code complexity and quantity by over 50%</li>
+                        <li>Replicate missing 9-slicing functionality</li>
+                    </ul>
+                </div>
+
+                <div id="ironhorse_comic" class="unity csharp git vs game mobile">
+                    <h4 class="collapse-header">Superhero Comic Prototype</h4>
+                    <ul class="collapse-content">
+                        <li>Efficiently prototype new concepts to facilitate design discussions</li>
+                        <li>Smoothly reframe and brighten cells of a comic while panning across the page</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div id="5th" class="unity csharp git js sql vs jira redis mongo java game mobile">
+            <h3 class="collapse-header">Full Stack Software Engineer at 5th Planet Games</h3>
+            <div class="collapse-content">            
+                <h4>Dawn of the Dragons: Ascension</h4>
+                <div id="5th_campaign" class="unity csharp git sql vs jira redis mongo game mobile">
+                    <h4 class="collapse-header">Campaigns Guild Feature</h4>
+                    <ul class="collapse-content">
+                        <li>Partner with a game designer and software engineer to create technical design documents and plan feature development tasks</li>
+                        <li>Implement the campaign feature across server and client components</li>
+                        <ul>
+                            <li>Move across the shared campaign map with an energy resource</li>
+                            <li>Strategically defeat nodes to limit buffs across the event</li>
+                            <li>Compile rewards from loot pools and deliver them to player inboxes once the event is complete</li>
+                        </ul>
+                        <li>Release and support the feature with bug fixes</li>
+                    </ul>
+                </div>
+
+                <div id="5th_ui" class="unity csharp git vs jira game mobile">
+                    <h4 class="collapse-header">UI</h4>
+                    <ul class="collapse-content">
+                        <li>Faithfully implement UI intent from art team mockups and wire frames</li>
+                        <li>Make UI/UX changes for improved clarity, player retention and monetization</li>
+                        <li>Handle the necessary changes for a PC conversion including dynamic scaling and mouseover text</li>
+                    </ul>
+                </div>
+
+                <div id="5th_support" class="unity csharp git js sql vs jira redis mongo java game mobile">
+                    <h4 class="collapse-header">Support</h4>
+                    <ul class="collapse-content">
+                        <li>Build, test, and maintain features across the server, client and admin tools</li>
+                        <li>Efficiently fix bugs, add functionality, and review code changes</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div id="northrop" class="js clearcase jira sql eclipse git java rally c python">
+            <h3 class="collapse-header">Software Engineer 2 at Northrop Grumman</h3>
+            <div class="collapse-content">
+                <div id="northrop_accreditation" class="js java c eclipse clearcase git rally">
+                    <h4 class="collapse-header">Mission Control Accreditation</h4>
+                    <ul class="collapse-content">
+                        <li>Create the cross-team integration environment for large (50,000+ man-hour) contract</li>
+                        <ul>
+                            <li>Include necessary hardware components as well as software components with methods to rebuild updates</li>
+                        </ul>
+                        <li>Create and follow a detailed series of test steps for accreditation</li>
+                        <li>Manage a team of 5 engineers with source control in git and tasking in Rally</li>
+                        <li>Create a RESTful Java API to forward messages to scripts and firmware</li>
+                    </ul>
+                </div>
+
+                <div id="northrop_browser" class="js clearcase jira">
+                    <h4 class="collapse-header">Mission Control Browser Tools</h4>
+                    <ul class="collapse-content">
+                        <li>Prototype requested functionally and regularly meet with stakeholders to guide iterative improvements</li>
+                        <li>Visualize and control hardware status including power, diagnostic reports and temperature</li>
+                        <li>Allocate resources to enable focusing on individual signal sets</li>
+                        <li>Build and configure a sequence of signal processing and analysis steps</li>
+                        <li>Visualize location data over time for receiving platform and numerous signals</li>
+                    </ul>
+                </div>
+
+                <div id="northrop_prototype" class="java js sql eclipse clearcase git jira">
+                    <h4 class="collapse-header">Prototype Internal R&D Projects</h4>
+                    <ul class="collapse-content">
+                        <li>Display known network layout with the Java Universal Network/Graph Framework (JUNG)</li>
+                        <li>Procedurally configure connected devices with the Simple Network Management Protocol (SNMP)</li>
+                        <li>Exploratory project utilizing minimax in a rule-based environment to respond to network input</li>
+                    </ul>
+                </div>
+
+                <div id="northrop_chassistest" class="python clearcase jira">
+                    <h4 class="collapse-header">Sensor Chassis Test Suite</h4>
+                    <ul class="collapse-content">
+                        <li>Startup and run diagnostic on test chassis</li>
+                        <li>Install and validate test suite on an air-gapped network</li>
+                    </ul>
+                </div> 
+
+                <div id="northrop_flight" class="java">
+                    <h4 class="collapse-header">Sensor Calibration Real-World Flight Testing</h4>
+                    <ul class="collapse-content">
+                        <li>Validate processes documentation by running against real hardware</li>
+                        <li>Direct a pilot to predetermined points near the facility antennae</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div id="doublea" class="java git csharp eclipse xna game mobile">
+            <h3 class="collapse-header">Generalist Programmer / Owner at DoubleA Studios</h3>
+            <div class="collapse-content">
+                <div id="doublea_kelkom" class="java git eclipse">
+                    <h4 class="collapse-header">Kelkom</h4>
+                    <ul class="collapse-content">
+                        <li>LAN-based medical appointment scheduling and metrics system</li>
+                        <li>Deployed on a tablet to replace a hardware unit with blinking buttons</li>
+                    </ul>
+                </div>
+
+                <div id="doublea_ttrpg" class="java git eclipse">
+                    <h4 class="collapse-header">TTRPG Visualization Tool</h4>
+                    <ul class="collapse-content">
+                        <li>Character manager and visualization tool for table-top RPGs (Primarily D&D)</li>
+                        <li>Includes a separate initiative tracking application with status effects and dynamic layout scaling</li>
+                    </ul>
+                </div>
+
+                <div id="doublea_taskbar" class="csharp git eclipse">
+                    <h4 class="collapse-header">Windows Taskbar Messaging Tool</h4>
+                    <ul class="collapse-content">
+                        <li>Broadcast messaging system for posts and advertising in a Windows toolbar</li>
+                        <li>Includes tabs to track multiple messaging channels including financial advice and retail coupons</li>
+                    </ul>
+                </div>
+
+                <div id="doublea_fromspace" class="csharp xna game console">
+                    <h4 class="collapse-header">From Space (Twin-stick shooter)</h4>
+                    <ul class="collapse-content">
+                        <li>3 unique playable races</li>
+                        <ul>
+                            <li>Junkers generate trash shields, create turrets, and fire rapidly</li>
+                            <li>Space snails regenerate, charge forward, and gain a spread shot </li>
+                            <li>Saucers turn instantly, fire homing missiles, and fire bullets that shoot more bullets</li>
+                        </ul>
+                        <li>Enemies attempt to dodge projectiles, weaving through on higher difficulties</li>
+                        <li>Enemies drop powerup crates</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div id="personal" class="git unity csharp vs vscode game js">
+            <h3 class="collapse-header">Side Projects</h3>
+            <div class="collapse-content">
+                <div id="personal_portfolio" class="js">
+                    <h4 class="collapse-header">Online Portfolio (this page)</h4>
+                    <ul class="collapse-content">
+                        <li>Use jquery to sort experience against a list of languages and tools</li>
+                        <li><a href="https://github.com/Zekzek/Portfolio" target="_blank">github</a></li>
+                    </ul>
+                </div>
+
+                
+                <div id="personal_dice" class="unity csharp">
+                    <h4 class="collapse-header">Dice Game</h4>
+                    <ul class="collapse-content">
+                        <li>World space UI elements</li>
+                        <li>Physics-based RNG</li>
+                    </ul>
+                </div>
+
+                <div id="personal_botrepair" class="csharp unity vs game">
+                    <h4 class="collapse-header">Manic Space Bot Repair (GGJ 2020)</h4>
+                    <ul class="collapse-content">
+                        <li>Gather parts and fix the bots so they can repair the ship</li>
+                        <li><a href="https://globalgamejam.org/2020/games/manic-space-bot-repair-6" target="_blank">Global game jam</a></li>
+                    </ul>
+                </div>
+
+                <div id="personal_home" class="csharp unity vs game">
+                    <h4 class="collapse-header">How Our Mission Ended (GGJ 2019)</h4>
+                    <ul class="collapse-content">
+                        <li>Fight or befriend in a quest for stuffium.</li>
+                        <li>Simplified AI</li>
+                        <li><a href="https://globalgamejam.org/2019/games/how-our-mission-ended" target="_blank">Global game jam</a></li>
+                    </ul>
+                </div>
+
+                <div id="personal_lumen" class="csharp unity vs game">
+                    <h4 class="collapse-header">Lumen (GGJ 2018)</h4>
+                    <ul class="collapse-content">
+                        <li>Resource collection and management</li>
+                        <li><a href="https://globalgamejam.org/2018/games/lumen" target="_blank">Global game jam</a></li>
+                    </ul>
+                </div>
+
+                <div id="personal_ravenousvoid" class="csharp unity vs game">
+                    <h4 class="collapse-header">Ravenous Void (Ludum Dare 45)</h4>
+                    <ul class="collapse-content">
+                        <li>Brave the unknown to gather the power to fend off the darkness</li>
+                        <li>Procedural world generation</li>
+                        <li>JSON-based music</li>
+                        <li><a href="https://ldjam.com/events/ludum-dare/45/ravenous-void" target="_blank">ludum dare</a></li>
+                    </ul>
+                </div>
+
+                <div id="personal_herdingcats" class="csharp unity vs game">
+                    <h4 class="collapse-header">Herding Cats (Ludum Dare 44)</h4>
+                    <ul class="collapse-content">
+                        <li>Armed with a lazer pointer, try to get cats to assist in solving puzzles</li>
+                        <li><a href="https://ldjam.com/events/ludum-dare/44/herding-cats" target="_blank">ludum dare</a></li>
+                    </ul>
+                </div>
+
+                <div id="personal_gastank" class="js game">
+                    <h4 class="collapse-header">AI Opponent for a Customized Chess Game</h4>
+                    <ul class="collapse-content">
+                        <li>Use Negamax algorithm to select best move</li>
+                        <li><a href="https://github.com/Zekzek/gasTank" target="_blank">github</a></li>
+                    </ul>
+                </div>
+
+                <div id="personal_jigsaw" class="java mobile game">
+                    <h4 class="collapse-header">Jigsaw Puzzle Creator</h4>
+                    <ul class="collapse-content">
+                        <li>Chop any image into puzzle pieces and put them back together again</li>
+                        <li><a href="https://github.com/Zekzek/PuzzleCreator" target="_blank">github</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div id="school" class="eclipse java git c">
+            <h3 class="collapse-header">Education</h3>
+            <div class="collapse-content">
+                <div id="school_sacstate" class="eclipse java git">
+                    <h4 class="collapse-header">Sacramento State</h4>
+                    <ul class="collapse-content">
+                        <li>Received a bachelor's degree in computer science</li>
+                        <li>Worked as an adjunct professor, tutor, and grader covering all undergraduate computer science coursework</li>
+                        <li>Represented school in state programming competition</li>
+                    </ul>
+                </div>
+
+                <div id="school_delta" class="c eclipse">
+                    <h4 class="collapse-header">San Joaquin Delta College</h4>
+                    <ul class="collapse-content">
+                        <li>Received an associate's degree in computer science</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+<footer>
+    <a href="https://www.freepik.com/free-vector/abstract-black-texture-background-hexagon_18702139.htm#query=dark%20background&position=13&from_view=keyword&track=ais">Image by almumtazza</a> on Freepik
+    <script src="index.js"></script>
+</footer>
+</html>
