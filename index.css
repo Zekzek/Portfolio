@@ -1,11 +1,20 @@
 :root {
-    /*https://colorhunt.co/palette/000000282a3a735f32c69749*/
+    /*https://colorhunt.co/palette/000000282a3a735f32c69749*
     --main-bg-color: #000000;
     --other-bg-color: #282A3A;
     --border-color: #735F32;
     --highlight-color: #C69749;
     --main-text-color: #ffffff;
     --other-text-color: #999999;/**/
+
+    /**/
+    --main-bg-color: #000000;
+    --other-bg-color: #222A50;
+    --border-color: #A36A00;
+    --highlight-color: #FFA500;
+    --main-text-color: #ffffff;
+    --other-text-color: #999999;/**/
+
 }
 
 body {
@@ -28,12 +37,13 @@ div.sidebar {
     bottom: 0;
     left: 0;
     background-color: var(--other-bg-color);
-    border: 2px solid var(--border-color);
+    border: 5px groove var(--border-color);
     padding-left: 10px;
+    background-image: linear-gradient(var(--other-bg-color), var(--main-bg-color));
 }
 
 div.main-section {
-    margin-left: 300px;
+    margin-left: 335px;
 }
 
 .indent {
@@ -41,11 +51,11 @@ div.main-section {
 }
 
 .collapse-header {
-    width: 100%;
+    width: 60%;
     background-color: var(--other-bg-color);
-    border: 1px solid var(--border-color);
     margin-bottom: 2px;
     margin-top: 2px;
+    background-image: linear-gradient(to right, var(--other-bg-color), var(--main-bg-color));
 }
 
 .hiding .collapse-header {
@@ -62,14 +72,17 @@ button.filter, button.showhide {
 }
 
 .collapse-content {
-    margin-left: 40px;
+    margin-left: 60px;
     margin-top: 10px;
     margin-bottom: 10px;
     padding-inline-start: 0px;
 }
 
 div.star {
-    padding-left: 10px;
+    margin-left: 10px;
+    margin-right: 10px;
+    border-top: 1px solid rgba(163,106,0,0.2);
+    border-bottom: 1px solid rgba(163,106,0,0.2);
 }
 
 div.star button.filter span {
@@ -81,6 +94,29 @@ div.star span.stars {
     position: absolute;
     right: 10px;
     color: var(--highlight-color);
+}
+
+div.tile-box {
+    text-align: center;
+    display: flex;
+    justify-content: space-around;
+    margin-left: 50px;
+    margin-right: 100px;
+}
+
+img.screenshot {
+    height: 250px;
+    display: inline-block;
+    border: 5px groove var(--border-color);
+    margin: 1em;
+    margin-left: -40%;
+    margin-right: -40%;
+    transition: all .3s ease-in-out;
+}
+
+img.screenshot:hover {
+    transform: scale(1.5);
+    z-index: 1;
 }
 
 a:link {
