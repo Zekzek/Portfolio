@@ -80,7 +80,7 @@ button.filter, button.showhide {
 
 div.star {
     margin-left: 10px;
-    margin-right: 10px;
+    margin-right: 15px;
     border-top: 1px solid rgba(163,106,0,0.2);
     border-bottom: 1px solid rgba(163,106,0,0.2);
 }
