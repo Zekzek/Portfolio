@@ -7,7 +7,7 @@
     --main-text-color: #ffffff;
     --other-text-color: #999999;/**/
 
-    /**/
+    /*
     --main-bg-color: #000000;
     --other-bg-color: #222A50;
     --border-color: #A36A00;
@@ -15,6 +15,13 @@
     --main-text-color: #ffffff;
     --other-text-color: #999999;/**/
 
+    /**/
+    --main-bg-color: #000000;
+    --other-bg-color: #222222;
+    --border-color: #AAAAAA;
+    --highlight-color: #BBDDFF;
+    --main-text-color: #ffffff;
+    --other-text-color: #999999;/**/
 }
 
 body {
@@ -115,7 +122,7 @@ img.screenshot {
 }
 
 img.screenshot:hover {
-    transform: scale(1.5);
+    transform: scale(1.25);
     z-index: 1;
 }
 
