@@ -1,4 +1,9 @@
 function setup_all_show_hide() {
+    setup_show_hide('azra');
+    setup_show_hide('azra_precommit');
+    setup_show_hide('azra_recordandplay');
+    setup_show_hide('azra_testautomation');
+
     setup_show_hide('ea');
     setup_show_hide('ea_precommit');
     setup_show_hide('ea_awsdevicefarm');
@@ -61,6 +66,7 @@ function setup_all_filters() {
     setup_filter('jira');
     setup_filter('aws');
     setup_filter('jenkins');
+    setup_filter('teamcity');
     setup_filter('rally');
     setup_filter('redis');
     setup_filter('mongo');
@@ -115,3 +121,20 @@ function draw_stars() {
 $(setup_all_show_hide);
 $(setup_all_filters);
 $(draw_stars);
+
+
+// --- Claude.ai ---
+
+document.querySelectorAll('.screenshot').forEach(img => {
+    img.addEventListener('click', () => {
+        const modal = document.querySelector('.modal');
+        const modalImg = modal.querySelector('img');
+        modalImg.src = img.src;
+        modalImg.alt = img.alt;
+        modal.classList.add('active');
+    });
+});
+
+document.querySelector('.modal').addEventListener('click', () => {
+    document.querySelector('.modal').classList.remove('active');
+});

@@ -47,6 +47,7 @@ div.sidebar {
     border: 5px groove var(--border-color);
     padding-left: 10px;
     background-image: linear-gradient(var(--other-bg-color), var(--main-bg-color));
+    overflow-y: auto;
 }
 
 div.main-section {
@@ -87,7 +88,7 @@ button.filter, button.showhide {
 
 div.star {
     margin-left: 10px;
-    margin-right: 15px;
+    margin-right: 10px;
     border-top: 1px solid rgba(163,106,0,0.2);
     border-bottom: 1px solid rgba(163,106,0,0.2);
 }
@@ -95,47 +96,83 @@ div.star {
 div.star button.filter span {
     position: relative;
     left: -4px;
+    background-color: white;
 }
 
 div.star span.stars {
     position: absolute;
-    right: 10px;
+    right:17px;
     color: var(--highlight-color);
 }
 
-div.tile-box {
-    text-align: center;
-    display: flex;
-    justify-content: space-around;
-    margin-left: 50px;
-    margin-right: 100px;
+.five { background-color:  #0077ff60; }
+.four { background-color:  #0077ff40; }
+.three { background-color: #0077ff20; }
+.two { background-color:   #0077ff10; }
+.one { background-color:   #0077ff05; }
+
+.tile-box {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(20px, 1fr));
+    gap: 15px;
+    height: 250px;
+    width: 100%;
+    padding: 10px 0;
+    overflow: hidden;
 }
 
-img.screenshot {
-    height: 250px;
-    display: inline-block;
-    border: 5px groove var(--border-color);
-    margin: 1em;
-    margin-left: -40%;
-    margin-right: -40%;
-    transition: all .3s ease-in-out;
+.screenshot {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: transform 0.3s ease;
 }
 
 img.screenshot:hover {
-    transform: scale(1.25);
+    transform: scale(1.02);
     z-index: 1;
+    box-shadow: 0 0 10px var(--highlight-color);
 }
 
+/* Modal for focused images */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.9);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+}
+
+.modal.active {
+    display: flex;
+}
+
+.modal img {
+    max-height: 90vh;
+    max-width: 90vw;
+    object-fit: contain;
+}
+
+/* Links */
 a:link {
-    color:skyblue;
+    color: #4a9eff;
+    text-decoration: none;
+}
+
+a:hover {
+    color: #87ceeb;
+    text-decoration: underline;
 }
 
 a:visited {
     color:blueviolet;
-}
-
-a:hover {
-    color:firebrick;
 }
 
 a:active {
