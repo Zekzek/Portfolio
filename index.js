@@ -190,6 +190,10 @@ function draw_stars() {
 $(setup_all_show_hide);
 $(setup_all_filters);
 $(draw_stars);
+// Compute and render total time per filterable tag
+$(function() {
+    computeFilterTimes();
+});
 
 
 // --- Claude.ai ---
@@ -207,3 +211,108 @@ document.querySelectorAll('.screenshot').forEach(img => {
 document.querySelector('.modal').addEventListener('click', () => {
     document.querySelector('.modal').classList.remove('active');
 });
+
+// --- Duration computation for filters ---
+function parseDurationFromText(text) {
+    if (!text) return { months: 0, ongoing: false };
+    var lower = text.toLowerCase();
+    var ongoing = /current/.test(lower) || /present/.test(lower);
+
+    // Look for patterns like '4 years', '1.5 years', '5 months', '1 year 6 months'
+    var yearsMatch = lower.match(/(\d+(?:\.\d+)?)\s*years?/);
+    var monthsMatch = lower.match(/(\d+)\s*months?/);
+
+    var months = 0;
+    if (yearsMatch) {
+        var yearsVal = parseFloat(yearsMatch[1]);
+        months += Math.round(yearsVal * 12);
+    }
+    if (monthsMatch) {
+        months += parseInt(monthsMatch[1], 10);
+    }
+
+    // If no numeric duration but header says current/present, treat as 12 months (ongoing)
+    if (months === 0 && ongoing) {
+        months = 12;
+    }
+
+    return { months: months, ongoing: ongoing };
+}
+
+function computeFilterTimes() {
+    var totals = {}; // key -> {months: number, ongoing: bool}
+
+    // Initialize totals for each filter checkbox value
+    $('.filter-checkbox').each(function() {
+        totals[$(this).val()] = { months: 0, ongoing: false };
+    });
+
+    // Iterate top-level experience sections only
+    $('.main-section > div').each(function() {
+        var $exp = $(this);
+
+        // allow manual override via data-duration-months attribute on the element
+        var attr = $exp.attr('data-duration-months');
+        var parsed = { months: 0, ongoing: false };
+        if (attr && !isNaN(parseInt(attr, 10))) {
+            parsed.months = parseInt(attr, 10);
+        } else {
+            // try parsing from the h3 header text
+            var header = $exp.find('> .collapse-header:first').text() || $exp.find('h3:first').text();
+            parsed = parseDurationFromText(header);
+        }
+
+        // add this experience's duration to any filter keys matching classes on the element
+        for (var key in totals) {
+            if ($exp.hasClass(key)) {
+                totals[key].months += parsed.months;
+                totals[key].ongoing = totals[key].ongoing || parsed.ongoing;
+            }
+        }
+    });
+
+    renderFilterTimes(totals);
+}
+
+// Format durations according to user's preference:
+// - If total < 6 months -> show months (e.g. "5m")
+// - Otherwise -> round to nearest year (e.g. "2y"). Append '+' for ongoing.
+function humanizeMonths(months, ongoing) {
+    if (!months || months <= 0) return ongoing ? '0m+' : '0m';
+    if (months < 6) {
+        return months + 'm' + (ongoing ? '+' : '');
+    }
+    var years = Math.round(months / 12);
+    if (years <= 0) years = 1;
+    return years + 'y' + (ongoing ? '+' : '');
+}
+
+function renderFilterTimes(totals) {
+    $('.filter-label').each(function() {
+        var $label = $(this);
+        var key = $label.find('.filter-checkbox').val();
+        if (!key || !totals[key]) return;
+
+        var $stars = $label.find('span.stars');
+
+        // Ensure a .time span exists and place it before the stars so stars stay flush-right
+        var $time = $label.find('span.time');
+        if ($time.length === 0) {
+            $time = $('<span class="time"></span>');
+            if ($stars.length) {
+                $time.insertBefore($stars);
+            } else {
+                $label.append(' ');
+                $label.append($time);
+            }
+        }
+
+        var t = totals[key];
+        var text = humanizeMonths(t.months, t.ongoing);
+        $time.text(text);
+        $label.attr('title', $label.attr('title') || text + ' experience');
+    });
+}
+
+// Recompute times if the DOM could change in relevant ways
+// (developers can call computeFilterTimes() after editing durations or adding data attributes)

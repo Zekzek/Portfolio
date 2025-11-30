@@ -139,6 +139,25 @@ button.showhide {
     white-space: nowrap;
 }
 
+/* Make the first span (the language text) take remaining space so
+   the time and stars align to the right. Keep text on one line. */
+.filter-label > span:first-of-type {
+    margin-left: 8px;
+    flex: 1 1 auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Time shown next to filter label (placed just before the stars) */
+.filter-label span.time {
+    margin-right: 6px;
+    color: var(--other-text-color);
+    font-size: 0.85rem;
+    white-space: nowrap;
+    flex: 0 0 auto;
+}
+
 .five { background-color:  #0077ff60; }
 .four { background-color:  #0077ff40; }
 .three { background-color: #0077ff20; }
