@@ -1,3 +1,5 @@
+var currentMode = 'manual'; // 'manual' or 'filter'
+
 function setup_all_show_hide() {
     setup_show_hide('azra');
     setup_show_hide('azra_precommit');
@@ -83,6 +85,8 @@ function setup_show_hide(id) {
     $(selector + " .collapse-header:first").prepend(collapseButton + ' ');
 
     $(selector + ' .showhide:first').click(function() {
+        set_mode('manual');
+        
         if ($(selector).hasClass('showing')) {
             $(selector + ' .collapse-content:first').hide(200);
             $(selector).toggleClass("showing hiding");
@@ -97,25 +101,90 @@ function setup_show_hide(id) {
 
 function setup_filter(key) {
     var selector = '#' + key + '_filter';
-
-    var filterButton = '<button class="filter"><span>&#128269;</span></button>'
-    $(selector).prepend(filterButton + ' ');
-
-    $(selector + ' *').click(function() {
-        $('.hiding.' + key + ' .showhide').click();
-        $('.hiding.' + key + ' .showhide').click();
-        $('.showing:not(".' + key + '") .showhide').click();
+    
+    $(selector).on('change', function() {
+        set_mode('filter');
+        update_filters();
     });
+}
+
+function set_mode(mode) {
+    currentMode = mode;
+    // Visual mode indicator removed — only adjust filter visual state
+    if (mode === 'filter') {
+        $('.filter-label').removeClass('inactive');
+    } else {
+        $('.filter-label').addClass('inactive');
+    }
+}
+
+// Setup global checkbox change handler
+$(document).on('change', '.filter-checkbox', function() {
+    set_mode('filter');
+    update_filters();
+});
+
+function update_filters() {
+    if (currentMode !== 'filter') return;
+    
+    var activeFilters = [];
+    $('.filter-checkbox:checked').each(function() {
+        activeFilters.push($(this).val());
+    });
+    
+    if (activeFilters.length === 0) {
+        // No filters selected - collapse everything for a concise view
+        $('.main-section .showing').each(function() {
+            $(this).find('.showhide:first').click();
+        });
+        return;
+    } else {
+        // Hide sections that don't have any of the active filter classes
+        $('.main-section > div').each(function() {
+            var hasActiveFilter = false;
+            for (var i = 0; i < activeFilters.length; i++) {
+                if ($(this).hasClass(activeFilters[i])) {
+                    hasActiveFilter = true;
+                    break;
+                }
+            }
+            
+            if (hasActiveFilter && $(this).hasClass('hiding')) {
+                $(this).find('.showhide:first').click();
+            } else if (!hasActiveFilter && $(this).hasClass('showing')) {
+                $(this).find('.showhide:first').click();
+            }
+        });
+    }
 }
 
 function draw_stars() {
     var filled = '&#9733;';
     var empty = '&#9734;';
-    $('.five.star').append('<span class="stars">' + filled + filled + filled + filled + filled + '</span>');
-    $('.four.star').append('<span class="stars">' + filled + filled + filled + filled + empty + '</span>');
-    $('.three.star').append('<span class="stars">' + filled + filled + filled + empty + empty + '</span>');
-    $('.two.star').append('<span class="stars">' + filled + filled + empty + empty + empty + '</span>');
-    $('.one.star').append('<span class="stars">' + filled + empty + empty + empty + empty + '</span>');
+    
+    // Apply stars to filter labels based on their class
+    $('#csharp_filter').closest('.filter-label').find('span.stars').html(filled + filled + filled + filled + filled);
+    $('#java_filter').closest('.filter-label').find('span.stars').html(filled + filled + filled + filled + empty);
+    $('#js_filter').closest('.filter-label').find('span.stars').html(filled + filled + filled + filled + empty);
+    $('#c_filter').closest('.filter-label').find('span.stars').html(filled + filled + filled + empty + empty);
+    $('#python_filter').closest('.filter-label').find('span.stars').html(filled + filled + empty + empty + empty);
+    $('#sql_filter').closest('.filter-label').find('span.stars').html(filled + filled + empty + empty + empty);
+    
+    $('#unity_filter').closest('.filter-label').find('span.stars').html(filled + filled + filled + filled + filled);
+    $('#git_filter').closest('.filter-label').find('span.stars').html(filled + filled + filled + filled + empty);
+    $('#jira_filter').closest('.filter-label').find('span.stars').html(filled + filled + filled + filled + empty);
+    $('#vs_filter').closest('.filter-label').find('span.stars').html(filled + filled + filled + filled + empty);
+    $('#intellij_filter').closest('.filter-label').find('span.stars').html(filled + filled + filled + filled + empty);
+    $('#eclipse_filter').closest('.filter-label').find('span.stars').html(filled + filled + filled + filled + empty);
+    $('#perforce_filter').closest('.filter-label').find('span.stars').html(filled + filled + filled + empty + empty);
+    $('#jenkins_filter').closest('.filter-label').find('span.stars').html(filled + filled + filled + empty + empty);
+    $('#rally_filter').closest('.filter-label').find('span.stars').html(filled + filled + filled + empty + empty);
+    $('#teamcity_filter').closest('.filter-label').find('span.stars').html(filled + filled + filled + empty + empty);
+    $('#aws_filter').closest('.filter-label').find('span.stars').html(filled + filled + empty + empty + empty);
+    $('#redis_filter').closest('.filter-label').find('span.stars').html(filled + filled + empty + empty + empty);
+    $('#mongo_filter').closest('.filter-label').find('span.stars').html(filled + filled + empty + empty + empty);
+    $('#gamemaker_filter').closest('.filter-label').find('span.stars').html(filled + filled + empty + empty + empty);
+    $('#clearcase_filter').closest('.filter-label').find('span.stars').html(filled + empty + empty + empty + empty);
 }
 
 $(setup_all_show_hide);

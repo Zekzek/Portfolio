@@ -50,6 +50,8 @@ div.sidebar {
     overflow-y: auto;
 }
 
+/* mode indicator removed — display simplified per user preference */
+
 div.main-section {
     margin-left: 335px;
 }
@@ -70,7 +72,7 @@ div.main-section {
     color: var(--other-text-color);
 }
 
-button.filter, button.showhide {
+button.showhide {
     background-color: var(--main-bg-color);
     color: var(--main-text-color);
     border: 1px solid var(--border-color);
@@ -86,23 +88,55 @@ button.filter, button.showhide {
     padding-inline-start: 0px;
 }
 
-div.star {
-    margin-left: 10px;
-    margin-right: 10px;
-    border-top: 1px solid rgba(163,106,0,0.2);
-    border-bottom: 1px solid rgba(163,106,0,0.2);
+.filter-label {
+    display: flex;
+    align-items: center;
+    margin-left: 8px;
+    margin-right: 8px;
+    padding: 2px 0; /* tighter vertical padding */
+    border-top: 1px solid rgba(163,106,0,0.12); /* softer separator */
+    border-bottom: 1px solid rgba(163,106,0,0.12);
+    cursor: pointer;
+    user-select: none;
+    font-size: 0.92rem;
+    transition: background 0.12s ease, transform 0.12s ease, opacity 0.12s ease;
 }
 
-div.star button.filter span {
-    position: relative;
-    left: -4px;
-    background-color: white;
+.filter-label input[type="checkbox"] {
+    margin-left: 6px;
+    margin-right: 6px;
+    cursor: pointer;
+    width: 12px;
+    height: 12px;
+    accent-color: var(--highlight-color);
 }
 
-div.star span.stars {
-    position: absolute;
-    right:17px;
+.filter-label.inactive {
+    opacity: 0.6;
+}
+
+/* Hover/focus highlight to make the UI feel more responsive */
+.filter-label:hover {
+    background: rgba(187,221,255,0.03);
+    transform: translateX(2px);
+}
+
+.filter-label.inactive:hover {
+    /* match the active hover effect so Manual mode still feels responsive */
+    background: rgba(187,221,255,0.03);
+    transform: translateX(2px);
+}
+
+.filter-label:focus-within {
+    outline: 2px solid rgba(187,221,255,0.12);
+    outline-offset: 2px;
+    border-radius: 3px;
+}
+
+.filter-label span.stars {
+    margin-left: auto;
     color: var(--highlight-color);
+    white-space: nowrap;
 }
 
 .five { background-color:  #0077ff60; }
