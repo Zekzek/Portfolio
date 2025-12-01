@@ -7,7 +7,7 @@ function setup_all_show_hide() {
 }
 
 var EXPERIENCE_SECTIONS = [
-    'azra', 'azra_precommit', 'azra_recordandplay', 'azra_testautomation',
+    'azra', 'azra_precommit', 'azra_recordandplay', 'azra_performancemetrics', 'azra_loadtesting', 'azra_serverstresstest', 'azra_dailyreports',
     'ea', 'ea_precommit', 'ea_awsdevicefarm', 'ea_recordandplay', 'ea_testreporting', 'ea_testautomation',
     'ironhorse', 'ironhorse_steamtown', 'ironhorse_comic',
     '5th', '5th_campaign', '5th_ui', '5th_support',
@@ -25,7 +25,7 @@ function setup_all_filters() {
 
 var FILTER_KEYS = [
     'csharp', 'python', 'java', 'js', 'sql', 'c',
-    'unity', 'vs', 'intellij', 'eclipse', 'git', 'perforce', 'jira', 'aws', 'jenkins', 'teamcity', 'rally', 'redis', 'mongo', 'gamemaker', 'clearcase'
+    'unity', 'vs', 'intellij', 'eclipse', 'git', 'perforce', 'jira', 'aws', 'jenkins', 'teamcity', 'rally', 'redis', 'mongo', 'bigquery', 'gamemaker', 'clearcase'
 ];
 
 function setup_show_hide(id) {
@@ -123,7 +123,7 @@ var STAR_RATINGS = {
     'csharp': 5, 'java': 3, 'js': 4, 'c': 2, 'python': 4, 'sql': 3,
     'unity': 5, 'git': 4, 'jira': 4, 'vs': 4, 'intellij': 4, 'eclipse': 4,
     'perforce': 4, 'jenkins': 4, 'rally': 3, 'teamcity': 4,
-    'aws': 3, 'redis': 2, 'mongo': 2, 'gamemaker': 2, 'clearcase': 1
+    'aws': 3, 'redis': 2, 'mongo': 2, 'bigquery': 3, 'gamemaker': 2, 'clearcase': 1
 };
 
 function draw_stars() {

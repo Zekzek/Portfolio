@@ -41,11 +41,6 @@
             <span>Python</span>
             <span class="stars"></span>
         </label>
-        <label class="filter-label inactive">
-            <input type="checkbox" id="sql_filter" class="filter-checkbox" value="sql">
-            <span>SQL</span>
-            <span class="stars"></span>
-        </label>
 
         <h3>Engines & IDEs</h3>
         <label class="filter-label inactive">
@@ -91,7 +86,17 @@
             <span class="stars"></span>
         </label>
 
-        <h3>Databases</h3>
+        <h3>Data & Cloud Services</h3>
+        <label class="filter-label inactive">
+            <input type="checkbox" id="bigquery_filter" class="filter-checkbox" value="bigquery">
+            <span>BigQuery</span>
+            <span class="stars"></span>
+        </label>
+        <label class="filter-label inactive">
+            <input type="checkbox" id="sql_filter" class="filter-checkbox" value="sql">
+            <span>SQL</span>
+            <span class="stars"></span>
+        </label>
         <label class="filter-label inactive">
             <input type="checkbox" id="mongo_filter" class="filter-checkbox" value="mongo">
             <span>MongoDB</span>
@@ -100,6 +105,11 @@
         <label class="filter-label inactive">
             <input type="checkbox" id="redis_filter" class="filter-checkbox" value="redis">
             <span>Redis</span>
+            <span class="stars"></span>
+        </label>
+        <label class="filter-label inactive">
+            <input type="checkbox" id="aws_filter" class="filter-checkbox" value="aws">
+            <span>AWS</span>
             <span class="stars"></span>
         </label>
 
@@ -122,11 +132,6 @@
         <label class="filter-label inactive">
             <input type="checkbox" id="rally_filter" class="filter-checkbox" value="rally">
             <span>Rally</span>
-            <span class="stars"></span>
-        </label>
-        <label class="filter-label inactive">
-            <input type="checkbox" id="aws_filter" class="filter-checkbox" value="aws">
-            <span>AWS</span>
             <span class="stars"></span>
         </label>
 
@@ -166,10 +171,48 @@
                     </ul>
                 </div>
 
-                <div id="azra_testautomation" class="unity csharp perforce intellij aws git mobile">
-                    <h4 class="collapse-header">Improve Test Automation</h4>
+                <div id="azra_performancemetrics" class="unity csharp python aws bigquery mobile game">
+                    <h4 class="collapse-header">Performance Metrics</h4>
                     <ul class="collapse-content">
-                        <li>Create a system to record and playback actions on mobile device</li>
+                        <li>Set up automated performance testing system to regularly run through common in-game scenarios</li>
+                        <li>Utilize AWS Device Farm to playback recorded test sequences on a variety of iOS and Android devices</li>
+                        <li>Capture Unity profiling data including CPU times, GPU time, and memory usage during test runs</li>
+                        <li>Store performance statistics (min, max, avg, P5, P95) in BigQuery database</li>
+                        <li>Create Looker Studio dashboards to visualize performance data with filtering by build, device model, and in-game area</li>
+                        <li>Extend performance runs to capture graphics state collection data, split by quality level and region</li>
+                        <li>Use collected data to pre-warm in-game shaders, significantly reducing first-time hitching</li>
+                    </ul>
+                </div>
+
+                <div id="azra_loadtesting" class="csharp perforce aws mobile game">
+                    <h4 class="collapse-header">Load Testing</h4>
+                    <ul class="collapse-content">
+                        <li>Create standalone C# application to connect to game server and send/receive TCP request/response sequences</li>
+                        <li>Use Perforce shelves to capture in-game message sequences for realistic gameplay emulation</li>
+                        <li>Parse server responses dynamically to handle generated entity IDs and maintain test flow</li>
+                        <li>Leverage game's proto files to ensure protocol compatibility between test tool and server</li>
+                        <li>Deploy to AWS Fargate with 50 instances to simulate hundreds of concurrent users</li>
+                        <li>Stress test servers under semi-realistic load conditions</li>
+                    </ul>
+                </div>
+
+                <div id="azra_serverstresstest" class="unity csharp game mobile">
+                    <h4 class="collapse-header">Mass Request Tool</h4>
+                    <ul class="collapse-content">
+                        <li>Build Unity-based tool to mass send server requests using same client code as production game</li>
+                        <li>Execute thousands of gacha pulls across hundreds of game accounts to evaluate drop rates</li>
+                        <li>Identify bugs and satisfy legal/production concerns through statistical analysis</li>
+                        <li>Extend functionality to populate leaderboards with thousands of test entries</li>
+                    </ul>
+                </div>
+
+                <div id="azra_dailyreports" class="python teamcity bigquery">
+                    <h4 class="collapse-header">Daily Reports</h4>
+                    <ul class="collapse-content">
+                        <li>Create automated Slack reports for performance regression detection</li>
+                        <li>Alert team to significant performance changes the day after commits, enabling quick identification of problematic changelists</li>
+                        <li>Build out-of-budget asset reporting (models, textures, etc.) to enforce memory and download size limits</li>
+                        <li>Significantly reduce memory usage and download size by catching oversized assets early</li>
                     </ul>
                 </div>
             </div>
