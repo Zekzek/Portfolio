@@ -120,10 +120,10 @@ function update_filters() {
 }
 
 var STAR_RATINGS = {
-    'csharp': 5, 'java': 4, 'js': 4, 'c': 3, 'python': 2, 'sql': 2,
+    'csharp': 5, 'java': 3, 'js': 4, 'c': 2, 'python': 4, 'sql': 3,
     'unity': 5, 'git': 4, 'jira': 4, 'vs': 4, 'intellij': 4, 'eclipse': 4,
-    'perforce': 3, 'jenkins': 3, 'rally': 3, 'teamcity': 3,
-    'aws': 2, 'redis': 2, 'mongo': 2, 'gamemaker': 2, 'clearcase': 1
+    'perforce': 4, 'jenkins': 4, 'rally': 3, 'teamcity': 4,
+    'aws': 3, 'redis': 2, 'mongo': 2, 'gamemaker': 2, 'clearcase': 1
 };
 
 function draw_stars() {
@@ -134,6 +134,59 @@ function draw_stars() {
         var rating = STAR_RATINGS[key];
         var stars = (filled.repeat(rating)) + (empty.repeat(5 - rating));
         $('#' + key + '_filter').closest('.filter-label').find('span.stars').html(stars);
+    }
+}
+
+function sortSkillsByRating() {
+    // Group filter labels by their parent h3 section (excluding Resume link)
+    var sections = {};
+    
+    $('.sidebar h3:not(:has(a))').each(function() {
+        var $heading = $(this);
+        var sectionName = $heading.text();
+        var $labels = [];
+        
+        // Collect all consecutive .filter-label elements until the next h3
+        var $current = $heading.next();
+        while ($current.length && !$current.is('h3')) {
+            if ($current.is('.filter-label')) {
+                $labels.push($current);
+            }
+            $current = $current.next();
+        }
+        
+        sections[sectionName] = {
+            $heading: $heading,
+            $labels: $labels
+        };
+    });
+    
+    // Sort each section's labels by star rating (highest to lowest), then alphabetically
+    for (var sectionName in sections) {
+        var section = sections[sectionName];
+        section.$labels.sort(function(a, b) {
+            var keyA = $(a).find('.filter-checkbox').val();
+            var keyB = $(b).find('.filter-checkbox').val();
+            var ratingA = STAR_RATINGS[keyA] || 0;
+            var ratingB = STAR_RATINGS[keyB] || 0;
+            
+            // First sort by rating (descending)
+            if (ratingB !== ratingA) {
+                return ratingB - ratingA;
+            }
+            
+            // Then sort alphabetically by skill name
+            var nameA = $(a).find('span:not(.stars)').text().toUpperCase();
+            var nameB = $(b).find('span:not(.stars)').text().toUpperCase();
+            return nameA.localeCompare(nameB);
+        });
+        
+        // Reinsert sorted labels after the heading
+        var $insertAfter = section.$heading;
+        section.$labels.forEach(function($label) {
+            $insertAfter.after($label);
+            $insertAfter = $label;
+        });
     }
 }
 
@@ -177,6 +230,7 @@ function setSectionShowing($section, showing) {
 $(setup_all_show_hide);
 $(setup_all_filters);
 $(draw_stars);
+$(sortSkillsByRating);
 // Compute and render total time per filterable tag
 $(function() {
     computeFilterTimes();

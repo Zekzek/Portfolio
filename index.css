@@ -46,8 +46,28 @@ div.sidebar {
     background-color: var(--other-bg-color);
     border: 5px groove var(--border-color);
     padding-left: 10px;
+    padding-right: 8px;
     background-image: linear-gradient(var(--other-bg-color), var(--main-bg-color));
     overflow-y: auto;
+    overflow-x: hidden;
+}
+
+/* Customize scrollbar appearance */
+div.sidebar::-webkit-scrollbar {
+    width: 8px;
+}
+
+div.sidebar::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+div.sidebar::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 4px;
+}
+
+div.sidebar::-webkit-scrollbar-thumb:hover {
+    background: var(--highlight-color);
 }
 
 /* mode indicator removed — display simplified per user preference */
