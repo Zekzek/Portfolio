@@ -13,7 +13,7 @@
 <body>
     <div class="sidebar">
         <h1>Al Bueche IV</h1>
-        <h2>Game Software Engineer</h2>
+        <h2>Software Engineer - Tools & Automation</h2>
 
         <h3>Languages</h3>
         <label class="filter-label inactive">
@@ -139,9 +139,13 @@
     </div>
 
     <div class="main-section">
-        <p>Passionate software engineer with over 12 years of experience looking to
-            create extraordinary games. Committed to continuous learning and applying
-            innovative solutions to deliver engaging player experiences.</p>
+        <p>Passionate software engineer with over 12 years of experience specializing in 
+            tools development and data visualization for game development. Throughout my career, from 
+            building mission control web portals to creating automation frameworks and performance 
+            dashboards for game studios, I've focused on crafting tools that empower teams and bring 
+            clarity to complex data. I thrive on the variety that comes with tool development, tackling 
+            completely different challenges week to week while delivering solutions that drive 
+            productivity and insight.</p>
         
         <div id="azra" class="unity csharp python perforce git teamcity jira game mobile aws" data-start="2024-10">
             <h3 class="collapse-header">Automation Engineer at Azra Games (Current)</h3>
@@ -157,17 +161,18 @@
                 <div id="azra_precommit" class="perforce swarm teamcity">
                     <h4 class="collapse-header">Pre-Commit</h4>
                     <ul class="collapse-content">
-                        <li>Respond to development hurdles with more timely automated testing</li>
-                        <li>Integrate with TeamCity to run tests when peer reviews are requested</li>
+                        <li>Address recurring build breaks from missing files, conditional compilation failures, and syntax errors</li>
+                        <li>Integrate with TeamCity to compile and test code when peer reviews are requested</li>
+                        <li>Catch majority of build-breaking changes before merge, significantly reducing team disruption</li>
                     </ul>
                 </div>
 
                 <div id="azra_recordandplay" class="unity csharp intellij teamcity game mobile">
                     <h4 class="collapse-header">Record & Play</h4>
                     <ul class="collapse-content">
-                        <li>Identify a QA need to reduce repetitive manual testing</li>
-                        <li>Design and implement a tool to capture gameplay steps, then replay them during automated testing runs</li>
-                        <li>Offer support and extend functionality to support more environments</li>
+                        <li>Build automated testing solution from ground up, applying learnings from previous automation experience</li>
+                        <li>Design and implement tool to capture gameplay steps and replay them during automated testing runs</li>
+                        <li>Support and extend functionality across multiple environments and test scenarios</li>
                     </ul>
                 </div>
 
@@ -180,7 +185,7 @@
                         <li>Store performance statistics (min, max, avg, P5, P95) in BigQuery database</li>
                         <li>Create Looker Studio dashboards to visualize performance data with filtering by build, device model, and in-game area</li>
                         <li>Extend performance runs to capture graphics state collection data, split by quality level and region</li>
-                        <li>Use collected data to pre-warm in-game shaders, significantly reducing first-time hitching</li>
+                        <li>Collaborate to use collected data for shader pre-warming, significantly reducing first-time hitching</li>
                     </ul>
                 </div>
 
@@ -188,7 +193,7 @@
                     <h4 class="collapse-header">Load Testing</h4>
                     <ul class="collapse-content">
                         <li>Create standalone C# application to connect to game server and send/receive TCP request/response sequences</li>
-                        <li>Use Perforce shelves to capture in-game message sequences for realistic gameplay emulation</li>
+                        <li>Record in-game message sequences with timestamps for realistic gameplay emulation</li>
                         <li>Parse server responses dynamically to handle generated entity IDs and maintain test flow</li>
                         <li>Leverage game's proto files to ensure protocol compatibility between test tool and server</li>
                         <li>Deploy to AWS Fargate with 50 instances to simulate hundreds of concurrent users</li>
@@ -200,8 +205,8 @@
                     <h4 class="collapse-header">Mass Request Tool</h4>
                     <ul class="collapse-content">
                         <li>Build Unity-based tool to mass send server requests using same client code as production game</li>
-                        <li>Execute thousands of gacha pulls across hundreds of game accounts to evaluate drop rates</li>
-                        <li>Identify bugs and satisfy legal/production concerns through statistical analysis</li>
+                        <li>Execute thousands of gacha pulls across hundreds of game accounts to proactively validate drop rates</li>
+                        <li>Identify subtle bugs in pity system through statistical analysis, mitigating legal and financial risk</li>
                         <li>Extend functionality to populate leaderboards with thousands of test entries</li>
                     </ul>
                 </div>
@@ -212,7 +217,7 @@
                         <li>Create automated Slack reports for performance regression detection</li>
                         <li>Alert team to significant performance changes the day after commits, enabling quick identification of problematic changelists</li>
                         <li>Build out-of-budget asset reporting (models, textures, etc.) to enforce memory and download size limits</li>
-                        <li>Significantly reduce memory usage and download size by catching oversized assets early</li>
+                        <li>Surface critical issues that spawned strike teams to address problem areas across the game</li>
                     </ul>
                 </div>
             </div>
@@ -243,22 +248,23 @@
                 </div>
 
                 <div id="ea_awsdevicefarm" class="aws jenkins perforce intellij mobile">
-                    <h4 class="collapse-header">AWS Device Farm</h4>
+                    <h4 class="collapse-header">AWS Device Farm Migration</h4>
                     <ul class="collapse-content">
-                        <li>Compare and report on costs vs maintaining a decaying onsite device farm</li>
-                        <li>Prove out a solution by locally building and running commands</li>
-                        <li>Instrument testing on AWS device farm during existing Jenkins test runs</li>
+                        <li>Evaluate and report on costs vs maintaining onsite device farm with constant maintenance needs</li>
+                        <li>Prove out AWS Device Farm solution through local prototyping</li>
+                        <li>Successfully migrate testing to AWS, gaining access to wider device array and eliminating maintenance overhead</li>
+                        <li>Integrate AWS Device Farm into existing Jenkins test pipelines</li>
                     </ul>
                 </div>
 
                 <div id="ea_recordandplay" class="unity csharp intellij jenkins game mobile">
                     <h4 class="collapse-header">Record & Play</h4>
                     <ul class="collapse-content">
-                        <li>Identify a QA need to reduce repetitive manual testing</li>
-                        <li>Suggest an approach of recording live gameplay and gather requirements</li>
-                        <li>Design and implement a tool to capture gameplay steps, then integrate with an existing automation solution to replay them during automated testing runs</li>
-                        <li>Demonstrate and promote the tool to QA</li>
-                        <li>Offer support and extend functionality to support more environments</li>
+                        <li>Identify QA need to reduce repetitive manual testing</li>
+                        <li>Propose recording live gameplay as an automation approach and gather requirements</li>
+                        <li>Integrate gameplay recording capability with existing automation framework</li>
+                        <li>Demonstrate and promote the tool to QA teams</li>
+                        <li>Support and extend functionality across multiple titles and environments</li>
                     </ul>
                 </div>
 
@@ -273,21 +279,19 @@
                 <div id="ea_testautomation" class="unity csharp perforce intellij git mobile">
                     <h4 class="collapse-header">Improve Test Automation</h4>
                     <ul class="collapse-content">
-                        <li>Replace frequent polling with a more performant relay of real-time updates</li>
-                        <ul>
-                            <li>Batch frequent messages to avoid flooding the network</li>
-                        </ul>
+                        <li>Replace hard-coded delays with conditional waits and timeout handling for more reliable test execution</li>
+                        <li>Add intelligent handling of unexpected prompts (interstitials, ads, rewards, connection issues)</li>
+                        <li>Replace frequent polling with performant relay of real-time screen state updates</li>
                         <li>Refactor to reduce code duplication and simplify messaging</li>
-                        <li>Increase testing up-time from 30% to 95%</li>
-                        <li>Port existing automation framework to support a new title</li>
-                        <li>Collaborate to support test automation for 5 mobile titles</li>
+                        <li>Increase testing up-time from 30% to 95% by addressing maintenance issues and flaky test patterns</li>
+                        <li>Port existing automation framework to support new titles, ultimately supporting 5 mobile titles</li>
                     </ul>
                 </div>
             </div>
         </div>
 
         <div id="ironhorse" class="gamemaker unity csharp git vs game mobile" data-start="2020-02" data-end="2020-06">
-            <h3 class="collapse-header">Full Stack Software Engineer at Iron Horse Games (5 months)</h3>
+            <h3 class="collapse-header">Software Engineer at Iron Horse Games (5 months)</h3>
             <div class="collapse-content">
                 <div id="ironhorse_steamtown" class="gamemaker git game mobile">
                     <h4 class="collapse-header">Steam Town</h4>
@@ -295,7 +299,7 @@
                         <li>Quickly ramp up on a new project and development platform with no support</li>
                         <li>Upgrade UI with all new animations and resolutions</li>
                         <li>Refactor to reduce code complexity and quantity by over 50%</li>
-                        <li>Replicate missing 9-slicing functionality</li>
+                        <li>Implement 9-slicing (scalable UI panels) where platform lacked built-in support</li>
                         <div class="tile-box">
                             <img src="assets/steamtown/screen-2.webp" alt="poster" class="screenshot">
                             <img src="assets/steamtown/screen-3.webp" alt="combat" class="screenshot">
@@ -332,14 +336,14 @@
                 <div id="5th_campaign" class="unity csharp git sql vs jira redis mongo game mobile">
                     <h4 class="collapse-header">Campaigns Guild Feature</h4>
                     <ul class="collapse-content">
-                        <li>Partner with a game designer and software engineer to create technical design documents and plan feature development tasks</li>
+                        <li>Collaborate with game designer and software engineer to create technical design documents and plan feature development tasks</li>
                         <li>Implement the campaign feature across server and client components</li>
                         <ul>
                             <li>Move across the shared campaign map with an energy resource</li>
                             <li>Strategically defeat nodes to limit buffs across the event</li>
                             <li>Compile rewards from loot pools and deliver them to player inboxes once the event is complete</li>
                         </ul>
-                        <li>Release and support the feature with bug fixes</li>
+                        <li>Complete feature development; game sunset before public release</li>
                     </ul>
                 </div>
 
@@ -379,19 +383,20 @@
                             <li>Include necessary hardware components as well as software components with methods to rebuild updates</li>
                         </ul>
                         <li>Create and follow a detailed series of test steps for accreditation</li>
-                        <li>Manage a team of 5 engineers with source control in git and tasking in Rally</li>
-                        <li>Create a RESTful Java API to forward messages to scripts and firmware</li>
+                        <li>Manage team of 5 engineers with source control in git and tasking in Rally</li>
+                        <li>Create RESTful Java API to forward messages to scripts and firmware</li>
+                        <li>Successfully complete accreditation, leading to contract extension</li>
                     </ul>
                 </div>
 
                 <div id="northrop_browser" class="js clearcase jira">
                     <h4 class="collapse-header">Mission Control Browser Tools</h4>
                     <ul class="collapse-content">
-                        <li>Prototype requested functionally and regularly meet with stakeholders to guide iterative improvements</li>
+                        <li>Prototype requested functionality and regularly meet with stakeholders to guide iterative improvements</li>
                         <li>Visualize and control hardware status including power, diagnostic reports and temperature</li>
-                        <li>Allocate resources to enable focusing on individual signal sets</li>
-                        <li>Build and configure a sequence of signal processing and analysis steps</li>
-                        <li>Visualize location data over time for receiving platform and numerous signals</li>
+                        <li>Manage resource allocation for pod components (antenna control, signal filtering, directional scanning)</li>
+                        <li>Build and configure sequences of signal processing and analysis steps</li>
+                        <li>Visualize location data over time for receiving platform and tracked signals</li>
                     </ul>
                 </div>
 
@@ -423,7 +428,7 @@
         </div>
 
         <div id="doublea" class="java git csharp eclipse xna game mobile" data-start="2011-06" data-end="2012-11">
-            <h3 class="collapse-header">Generalist Programmer / Owner at DoubleA Studios (1.5 years)</h3>
+            <h3 class="collapse-header">Generalist Programmer / Co-owner at DoubleA Studios (1.5 years)</h3>
             <div class="collapse-content">
                 <div id="doublea_kelkom" class="java git eclipse">
                     <h4 class="collapse-header">Kelkom</h4>
@@ -475,6 +480,26 @@
                         <li><a href="https://github.com/Zekzek/Portfolio" target="_blank">github</a></li>
                     </ul>
                 </div>
+
+                <div id="personal_hexworld" class="unity csharp game">
+                    <h4 class="collapse-header">Procedural Hex World</h4>
+                    <ul class="collapse-content">
+                        <li>Infinite procedural world generation using noise-based algorithms</li>
+                        <li>Object pooling system that reuses and repositions tiles for optimal performance</li>
+                        <li>Draw call optimization through batching and object reuse</li>
+                        <li>Horizon shader effects simulating small-planet navigation</li>
+                        <li>Instant warp system allowing navigation to any coordinate</li>
+                    </ul>
+                </div>
+
+                <div id="personal_gearswap" class="game">
+                    <h4 class="collapse-header">FFXI Gearswap Scripts</h4>
+                    <ul class="collapse-content">
+                        <li>Dynamic equipment optimization system using weighted stat evaluation</li>
+                        <li>Real-time adaptation to level changes, situational requirements, and available gear</li>
+                        <li>Automatic gear set generation based on current context (MP available, day of week, action type)</li>
+                    </ul>
+                </div>
                 
                 <div id="personal_dice" class="unity csharp">
                     <h4 class="collapse-header">Dice Game</h4>
@@ -496,8 +521,8 @@
                 <div id="personal_home" class="csharp unity vs game">
                     <h4 class="collapse-header">How Our Mission Ended (GGJ 2019)</h4>
                     <ul class="collapse-content">
-                        <li>Fight or befriend in a quest for stuffium.</li>
-                        <li>Simplified AI</li>
+                        <li>Fight or befriend in a quest for stuffium</li>
+                        <li>Pathfinding and behavior system for robot NPCs</li>
                         <li><a href="https://globalgamejam.org/2019/games/how-our-mission-ended" target="_blank">Global game jam</a></li>
                     </ul>
                 </div>

@@ -13,7 +13,7 @@ var EXPERIENCE_SECTIONS = [
     '5th', '5th_campaign', '5th_ui', '5th_support',
     'northrop', 'northrop_accreditation', 'northrop_browser', 'northrop_prototype', 'northrop_chassistest', 'northrop_flight',
     'doublea', 'doublea_kelkom', 'doublea_ttrpg', 'doublea_taskbar', 'doublea_fromspace',
-    'personal', 'personal_portfolio', 'personal_dice', 'personal_botrepair', 'personal_home', 'personal_lumen', 'personal_ravenousvoid', 'personal_herdingcats', 'personal_gastank', 'personal_jigsaw',
+    'personal', 'personal_portfolio', 'personal_hexworld', 'personal_gearswap', 'personal_dice', 'personal_botrepair', 'personal_home', 'personal_lumen', 'personal_ravenousvoid', 'personal_herdingcats', 'personal_gastank', 'personal_jigsaw',
     'school', 'school_sacstate', 'school_delta'
 ];
 
