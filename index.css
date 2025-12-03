@@ -88,6 +88,12 @@ div.main-section {
     background-image: linear-gradient(to right, var(--other-bg-color), var(--main-bg-color));
 }
 
+.collapse-header a {
+    pointer-events: auto;
+    z-index: 10;
+    position: relative;
+}
+
 .hiding .collapse-header {
     color: var(--other-text-color);
 }

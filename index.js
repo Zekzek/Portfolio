@@ -253,6 +253,13 @@ document.querySelector('.modal').addEventListener('click', () => {
     document.querySelector('.modal').classList.remove('active');
 });
 
+// Close modal with Escape key
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        document.querySelector('.modal').classList.remove('active');
+    }
+});
+
 // --- Duration computation for filters ---
 
 // Parse date string in YYYY-MM format
@@ -495,6 +502,16 @@ $(function() {
 // - If total < 6 months -> show months (e.g. "5m")
 // - Otherwise -> round to nearest year (e.g. "2y"). No '+' suffix.
 function humanizeMonths(months) {
+    if (!months || months <= 0) return '0 months';
+    if (months < 6) {
+        return months + (months === 1 ? ' month' : ' months');
+    }
+    var years = Math.round(months / 12);
+    if (years <= 0) years = 1;
+    return years + (years === 1 ? ' year' : ' years');
+}
+
+function humanizeMonthsShort(months) {
     if (!months || months <= 0) return '0m';
     if (months < 6) {
         return months + 'm';
@@ -525,7 +542,7 @@ function renderFilterTimes(totals) {
         }
 
         var t = totals[key];
-        var text = humanizeMonths(t.months);
+        var text = humanizeMonthsShort(t.months);
         $time.text(text);
         $label.attr('title', $label.attr('title') || text + ' experience');
     });
