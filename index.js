@@ -498,6 +498,26 @@ $(function() {
     updateSummaryExperience();
 });
 
+// --- Print/PDF Resume Generation ---
+
+function prepareForPrint() {
+    // Print with current view state
+    window.print();
+}
+
+// Attach print button handler
+$(function() {
+    $('#print-button').on('click', prepareForPrint);
+    
+    // Also support Ctrl+P keyboard shortcut
+    $(document).on('keydown', function(e) {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
+            e.preventDefault();
+            prepareForPrint();
+        }
+    });
+});
+
 // Format durations according to user's preference:
 // - If total < 6 months -> show months (e.g. "5m")
 // - Otherwise -> round to nearest year (e.g. "2y"). No '+' suffix.
