@@ -14,6 +14,29 @@
     <div class="sidebar">
         <h1>Al Bueche IV</h1>
         <h2>Software Engineer - Tools & Automation</h2>
+        <p class="linkedin-link"><a href="https://www.linkedin.com/in/albert-bueche-iv/" target="_blank">linkedin.com/in/albert-bueche-iv</a></p>
+
+        <div class="preset-filters">
+            <button class="preset-btn" id="btn-show-all">Show All</button>
+            <button class="preset-btn" id="btn-collapse-all">Collapse All</button>
+        </div>
+
+        <h3>Subject Matter</h3>
+        <label class="filter-label inactive">
+            <input type="checkbox" id="game_filter" class="filter-checkbox" value="game">
+            <span>Games</span>
+            <span class="stars"></span>
+        </label>
+        <label class="filter-label inactive">
+            <input type="checkbox" id="tools_filter" class="filter-checkbox" value="tools">
+            <span>Tools</span>
+            <span class="stars"></span>
+        </label>
+        <label class="filter-label inactive">
+            <input type="checkbox" id="defense_filter" class="filter-checkbox" value="defense">
+            <span>Defense</span>
+            <span class="stars"></span>
+        </label>
 
         <h3>Languages</h3>
         <label class="filter-label inactive">
@@ -139,18 +162,12 @@
     </div>
 
     <div class="main-section">
-        <p>Passionate software engineer with over 12 years of experience specializing in 
-            tools development and data visualization for game development. Throughout my career, from 
-            building mission control web portals to creating automation frameworks and performance 
-            dashboards for game studios, I've focused on crafting tools that empower teams and bring 
-            clarity to complex data. I thrive on the variety that comes with tool development, tackling 
-            completely different challenges week to week while delivering solutions that drive 
-            productivity and insight.</p>
+        <p>Tools & Automation Engineer with 12 years in software development. I build the infrastructure that lets teams ship faster – CI pipelines, performance dashboards, test frameworks, and the automation that keeps builds clean.</p>
         
         <div id="azra" class="unity csharp python perforce git teamcity jira game mobile aws bigquery" data-start="2024-10">
-            <h3 class="collapse-header">Automation Engineer at Azra Games (Current)</h3>
-            <p style="margin-left: 60px; margin-top: 5px; margin-bottom: 5px;">Game: <a href="https://ungodlygame.com/" target="_blank">Ungodly</a></p>
+            <h3 class="collapse-header">Software Engineer at Azra Games (Current)</h3>
             <div class="collapse-content">
+            <p style="margin-left: 0; margin-top: 5px; margin-bottom: 5px;">Game: <a href="https://ungodlygame.com/" target="_blank">Ungodly</a></p>
                 <div class="tile-box">
                     <img src="assets/azra/splash.webp" alt="Ungodly key art" class="screenshot">
                     <img src="assets/azra/wildwitch_about_section.webp" alt="Legend: White Witch" class="screenshot">
@@ -159,146 +176,159 @@
                     <img src="assets/azra/making_5.webp" alt="Development in progress" class="screenshot">
                 </div>
 
-                <div id="azra_precommit" class="perforce swarm teamcity">
+                <div id="azra_precommit" class="perforce swarm teamcity game tools" data-duration-months="6">
                     <h4 class="collapse-header">Pre-Commit</h4>
                     <ul class="collapse-content">
-                        <li>Address recurring build breaks from missing files, conditional compilation failures, and syntax errors</li>
-                        <li>Integrate with TeamCity to compile and test code when peer reviews are requested</li>
-                        <li>Catch majority of build-breaking changes before merge, significantly reducing team disruption</li>
+                        <li>Built pre-commit system that runs a targeted ~15-minute build on every peer review request, catching missing files, assembly definition gaps, and debug-flag hook mismatches before merge</li>
+                        <li>Catches the vast majority of would-be build breaks – remaining gaps are cases where submitters don't wait for results</li>
+                        <li>Team has come to rely on the system – active enough to flag 4 separate issues in a single day</li>
                     </ul>
                 </div>
 
-                <div id="azra_recordandplay" class="unity csharp intellij teamcity game mobile">
+                <div id="azra_recordandplay" class="unity csharp intellij teamcity game mobile tools" data-duration-months="18">
                     <h4 class="collapse-header">Record & Play</h4>
                     <ul class="collapse-content">
-                        <li>Build automated testing solution from ground up, applying learnings from previous automation experience</li>
-                        <li>Design and implement tool to capture gameplay steps and replay them during automated testing runs</li>
-                        <li>Support and extend functionality across multiple environments and test scenarios</li>
+                        <li>Built ground-up automated testing solution that captures live gameplay sequences and replays them as automated test runs</li>
+                        <li>Runs across dev and staging environments</li>
+                        <li>Compiled out of production builds to avoid any footprint in shipped code</li>
                     </ul>
                 </div>
 
-                <div id="azra_performancemetrics" class="unity csharp python aws bigquery mobile game">
+                <div id="azra_harvesttime" class="js aws bigquery unity perforce teamcity game tools" data-duration-months="4">
+                    <h4 class="collapse-header">Harvest Time</h4>
+                    <ul class="collapse-content">
+                        <li>Solo-built a full-stack internal web application (React + Node.js/Express, deployed on GCP Cloud Run) serving as the central control plane for automated game testing</li>
+                        <li>Unified Perforce, TeamCity, and AWS Device Farm into a single workflow with an auto-orchestration engine and priority-weighted test scheduling</li>
+                        <li>Built automated crash analysis pipeline that classifies test failures (OOM, ANR, Jetsam, loading stalls, game crashes vs. infrastructure failures) by parsing device logs – with alerting tied to specific changelists, devices, and tests</li>
+                        <li>Created interactive 3D performance heatmaps (Three.js) visualizing framerate, memory, and GPU/CPU time across game zones – supports compare mode, LOD rendering, and filtering by device, branch, and changelist</li>
+                        <li>Designed the data layer across BigQuery, Firestore, SQLite, and GCS; role-based access control via Firebase Auth</li>
+                    </ul>
+                </div>
+
+                <div id="azra_performancemetrics" class="unity csharp python aws bigquery mobile game tools" data-duration-months="16">
                     <h4 class="collapse-header">Performance Metrics</h4>
                     <ul class="collapse-content">
-                        <li>Set up automated performance testing system to regularly run through common in-game scenarios</li>
-                        <li>Utilize AWS Device Farm to playback recorded test sequences on a variety of iOS and Android devices</li>
-                        <li>Capture Unity profiling data including CPU times, GPU time, and memory usage during test runs</li>
-                        <li>Store performance statistics (min, max, avg, P5, P95) in BigQuery database</li>
-                        <li>Create Looker Studio dashboards to visualize performance data with filtering by build, device model, and in-game area</li>
-                        <li>Extend performance runs to capture graphics state collection data, split by quality level and region</li>
-                        <li>Collaborate to use collected data for shader pre-warming, significantly reducing first-time hitching</li>
+                        <li>Automated performance testing running 24/7 across 9 device models (6 Android, 3 iOS) via AWS Device Farm</li>
+                        <li>Built area discovery tool that automatically identifies player/enemy spawn points, zone transitions, and interactables – test coverage grows dynamically with new content, currently spanning ~100 in-game areas</li>
+                        <li>Capture Unity profiling data (CPU, GPU, memory) per run and store statistics (min, max, avg, P5, P95) in BigQuery</li>
+                        <li>Visualize results in Looker Studio dashboards with filtering by build, device model, and area</li>
                     </ul>
                 </div>
 
-                <div id="azra_loadtesting" class="csharp perforce aws mobile game">
+                <div id="azra_shaderprewarm" class="unity csharp python aws mobile game tools" data-duration-months="12">
+                    <h4 class="collapse-header">Shader Pre-warming</h4>
+                    <ul class="collapse-content">
+                        <li>Extended performance runs to collect graphics state data split by quality level and region</li>
+                        <li>Expanded coverage beyond automation by crowd-sourcing shader state from all internal playtesting sessions on real builds, filtering out non-representative custom builds</li>
+                        <li>Comprehensive collection enabled shader pre-warming that eliminated hitching in the game's early areas</li>
+                    </ul>
+                </div>
+
+                <div id="azra_loadtesting" class="csharp perforce aws mobile game tools" data-duration-months="2">
                     <h4 class="collapse-header">Load Testing</h4>
                     <ul class="collapse-content">
-                        <li>Create standalone C# application to connect to game server and send/receive TCP request/response sequences</li>
-                        <li>Record in-game message sequences with timestamps for realistic gameplay emulation</li>
-                        <li>Parse server responses dynamically to handle generated entity IDs and maintain test flow</li>
-                        <li>Leverage game's proto files to ensure protocol compatibility between test tool and server</li>
-                        <li>Deploy to AWS Fargate with 50 instances to simulate hundreds of concurrent users</li>
-                        <li>Stress test servers under semi-realistic load conditions</li>
+                        <li>Built standalone C# application that emulates realistic gameplay message sequences against the live game server, using the game's own proto files to ensure protocol accuracy</li>
+                        <li>Dynamically parsed server responses to handle generated entity IDs and maintain test flow across sessions</li>
+                        <li>Deployed to AWS Fargate across 50 instances to simulate hundreds of concurrent users</li>
+                        <li>Collaborated with the server team through ~1 month of iterative testing cycles, surfacing hot-spot database queries and skippable calls – resolved with caching across ~3 significant performance improvements</li>
                     </ul>
                 </div>
 
-                <div id="azra_serverstresstest" class="unity csharp game mobile">
+                <div id="azra_serverstresstest" class="unity csharp game mobile tools" data-duration-months="1">
                     <h4 class="collapse-header">Mass Request Tool</h4>
                     <ul class="collapse-content">
-                        <li>Build Unity-based tool to mass send server requests using same client code as production game</li>
-                        <li>Execute thousands of gacha pulls across hundreds of game accounts to proactively validate drop rates</li>
-                        <li>Identify subtle bugs in pity system through statistical analysis, mitigating legal and financial risk</li>
-                        <li>Extend functionality to populate leaderboards with thousands of test entries</li>
+                        <li>Built Unity-based tool to mass-send server requests using the same client code as the production game, enabling realistic gacha simulation at scale</li>
+                        <li>Ran weekend-long tests executing 100 10-pulls (1,000 results) per account across 10,000 accounts to build statistically reliable drop rate data</li>
+                        <li>Caught pity system bugs before launch through statistical analysis, mitigating legal and financial risk</li>
+                        <li>Distributed load across many accounts to prevent state accumulation from skewing results</li>
+                        <li>Extended to populate leaderboards with thousands of test entries</li>
                     </ul>
                 </div>
 
-                <div id="azra_dailyreports" class="python teamcity bigquery">
+                <div id="azra_agenticdev" class="python csharp game tools" data-duration-months="12">
+                    <h4 class="collapse-header">Agentic Development</h4>
+                    <ul class="collapse-content">
+                        <li>Built a custom MCP server to surface game-specific context and prompt patterns to LLM agents, enabling consistent AI-assisted workflows across the tools team</li>
+                        <li>Leverage agentic coding tools (Claude Code) to accelerate routine automation work, directing agent workflows while retaining ownership of system design, integration, and code review</li>
+                        <li>Extended agentic tooling to production workflows – a scheduled Claude analysis job processes daily performance reports across ~100 areas and 9 device models, replacing dense data tables with targeted actionable summaries</li>
+                    </ul>
+                </div>
+
+                <div id="azra_dailyreports" class="python teamcity bigquery game tools" data-duration-months="9">
                     <h4 class="collapse-header">Daily Reports</h4>
                     <ul class="collapse-content">
-                        <li>Create automated Slack reports for performance regression detection</li>
-                        <li>Alert team to significant performance changes the day after commits, enabling quick identification of problematic changelists</li>
-                        <li>Build out-of-budget asset reporting (models, textures, etc.) to enforce memory and download size limits</li>
-                        <li>Surface critical issues that spawned strike teams to address problem areas across the game</li>
+                        <li>Daily automated Slack reports flagging performance regressions and out-of-budget assets (models, textures, memory, download size), posted each morning</li>
+                        <li>When first deployed, only ~30% of runs met performance targets – consistent daily visibility drove that to 98–99% as the team focused on launch readiness</li>
+                        <li>Still surfaces ~1 new significant issue per week, typically in newly developed areas</li>
+                        <li>Integrated a scheduled Claude analysis job to summarize results across ~100 areas and 9 device models – replacing a dense data table with actionable daily highlights</li>
                     </ul>
                 </div>
             </div>
         </div>
         
-        <div id="ea" class="unity csharp python perforce git jenkins jira aws intellij  game mobile" data-start="2020-06" data-end="2024-09">
+        <div id="ea" class="unity csharp perforce git jenkins jira aws intellij game mobile" data-start="2020-06" data-end="2024-09">
             <h3 class="collapse-header">Software Engineer 2 at Electronic Arts (4 years)</h3>
-            <p style="margin-left: 60px; margin-top: 5px; margin-bottom: 5px;">Notable title: <a href="https://www.ea.com/games/starwars/galaxy-of-heroes" target="_blank">Star Wars: Galaxy of Heroes</a></p>
             <div class="collapse-content">
+            <p style="margin-left: 0; margin-top: 5px; margin-bottom: 5px;">Notable title: <a href="https://www.ea.com/games/starwars/galaxy-of-heroes" target="_blank">Star Wars: Galaxy of Heroes</a></p>
                 <div class="tile-box">
                     <img src="assets/ea/swgoh.webp" alt="Star Wars: Galaxy of Heroes" class="screenshot">
                     <img src="assets/ea/home.jpg" alt="Heroes of Middle-earth" class="screenshot">
                 </div>
 
-                <div id="ea_precommit" class="python perforce jenkins">
+                <div id="ea_precommit" class="python perforce jenkins game tools" data-duration-months="3">
                     <h4 class="collapse-header">Pre-Commit</h4>
                     <ul class="collapse-content">
-                        <li>Respond to an engineering request for more timely automated testing</li>
-                        <ul>
-                            <li>Design and implement a framework to run an extendable set of tests</li>
-                        </ul>
-                        <li>Each test checks the changed file list to determine if it needs to run</li>
-                        <li>Integrate with Jenkins to run tests when peer reviews are requested</li>
-                        <li>Support tests written by the client, server, and tooling teams</li>
+                        <li>Built an extensible pre-commit framework for the Star Wars: Galaxy of Heroes team, triggering on peer review requests via Jenkins</li>
+                        <li>Each test scopes itself to relevant file changes to minimize run time, focused on the team's most common failure modes including missing files and assembly issues</li>
                     </ul>
                 </div>
 
-                <div id="ea_awsdevicefarm" class="aws jenkins perforce intellij mobile">
+                <div id="ea_awsdevicefarm" class="aws jenkins perforce intellij mobile game tools" data-duration-months="12">
                     <h4 class="collapse-header">AWS Device Farm Migration</h4>
                     <ul class="collapse-content">
-                        <li>Evaluate and report on costs vs maintaining onsite device farm with constant maintenance needs</li>
-                        <li>Prove out AWS Device Farm solution through local prototyping</li>
-                        <li>Successfully migrate testing to AWS, gaining access to wider device array and eliminating maintenance overhead</li>
-                        <li>Integrate AWS Device Farm into existing Jenkins test pipelines</li>
+                        <li>Migrated from a degraded 4-device local farm (multiple failures due to battery bloat) to 6 device models on AWS Device Farm</li>
+                        <li>Eliminated device maintenance overhead, improved reliability, and integrated the new farm into existing Jenkins pipelines</li>
                     </ul>
                 </div>
 
-                <div id="ea_recordandplay" class="unity csharp intellij jenkins game mobile">
+                <div id="ea_recordandplay" class="unity csharp intellij jenkins game mobile tools" data-duration-months="24">
                     <h4 class="collapse-header">Record & Play</h4>
                     <ul class="collapse-content">
-                        <li>Identify QA need to reduce repetitive manual testing</li>
-                        <li>Propose recording live gameplay as an automation approach and gather requirements</li>
-                        <li>Integrate gameplay recording capability with existing automation framework</li>
-                        <li>Demonstrate and promote the tool to QA teams</li>
-                        <li>Support and extend functionality across multiple titles and environments</li>
+                        <li>Proposed and built live gameplay recording integrated into the existing automation framework, eliminating repetitive manual QA testing</li>
+                        <li>Deployed to 3 EA mobile titles, enabling QA teams to replay captured sessions as automated test runs across multiple environments</li>
                     </ul>
                 </div>
 
-                <div id="ea_testreporting" class="csharp jira perforce intellij">
+                <div id="ea_testreporting" class="csharp jira perforce intellij game tools" data-duration-months="6">
                     <h4 class="collapse-header">Additional Test Reporting</h4>
                     <ul class="collapse-content">
-                        <li>Respond to a QA request for more accessible test logging</li>
-                        <li>Prototype and later refine a solution to report automated test results directly to the QA test tracking tool, Zephyr</li>
+                        <li>Extended the automation framework to post results directly to Zephyr, giving QA a live view of test status without manual reporting</li>
                     </ul>
                 </div>
 
-                <div id="ea_testautomation" class="unity csharp perforce intellij git mobile">
+                <div id="ea_testautomation" class="unity csharp perforce intellij git mobile game tools" data-duration-months="52">
                     <h4 class="collapse-header">Improve Test Automation</h4>
                     <ul class="collapse-content">
-                        <li>Replace hard-coded delays with conditional waits and timeout handling for more reliable test execution</li>
-                        <li>Add intelligent handling of unexpected prompts (interstitials, ads, rewards, connection issues)</li>
-                        <li>Replace frequent polling with performant relay of real-time screen state updates</li>
-                        <li>Refactor to reduce code duplication and simplify messaging</li>
-                        <li>Increase testing up-time from 30% to 95% by addressing maintenance issues and flaky test patterns</li>
-                        <li>Port existing automation framework to support new titles, ultimately supporting 5 mobile titles</li>
+                        <li>Replaced hard-coded delays with conditional waits and timeout handling</li>
+                        <li>Added intelligent interception of unexpected prompts (ads, rewards, connection issues)</li>
+                        <li>Replaced polling with real-time screen state relay, reducing load and improving responsiveness</li>
+                        <li>Increased framework uptime from 30% to 95% through systematic elimination of flaky patterns and maintenance debt</li>
+                        <li>Ported framework to 5 mobile titles</li>
                     </ul>
                 </div>
             </div>
         </div>
 
         <div id="ironhorse" class="gamemaker unity csharp git vs game mobile" data-start="2020-02" data-end="2020-06">
-            <h3 class="collapse-header">Software Engineer at Iron Horse Games (5 months)</h3>
+            <h3 class="collapse-header">Software Engineer at Iron Horse Games – Contract (5 months)</h3>
             <div class="collapse-content">
-                <div id="ironhorse_steamtown" class="gamemaker git game mobile">
+                <div id="ironhorse_steamtown" class="gamemaker git game mobile" data-duration-months="4">
                     <h4 class="collapse-header">Steam Town</h4>
                     <ul class="collapse-content">
-                        <li>Quickly ramp up on a new project and development platform with no support</li>
-                        <li>Upgrade UI with all new animations and resolutions</li>
-                        <li>Refactor to reduce code complexity and quantity by over 50%</li>
-                        <li>Implement 9-slicing (scalable UI panels) where platform lacked built-in support</li>
+                        <li>Ramped up on an unfamiliar codebase and engine (GameMaker) independently, with no onboarding support</li>
+                        <li>Upgraded UI with new animations and resolution support</li>
+                        <li>Refactored to cut code volume and complexity by over 50%</li>
+                        <li>Implemented custom 9-slicing for scalable UI panels where the platform had no built-in support</li>
                         <div class="tile-box">
                             <img src="assets/steamtown/screen-2.webp" alt="poster" class="screenshot">
                             <img src="assets/steamtown/screen-3.webp" alt="combat" class="screenshot">
@@ -307,11 +337,10 @@
                     </ul>
                 </div>
 
-                <div id="ironhorse_comic" class="unity csharp git vs game mobile">
+                <div id="ironhorse_comic" class="unity csharp git vs game mobile" data-duration-months="1">
                     <h4 class="collapse-header">Superhero Comic Prototype</h4>
                     <ul class="collapse-content">
-                        <li>Efficiently prototype new concepts to facilitate design discussions</li>
-                        <li>Smoothly reframe and brighten cells of a comic while panning across the page</li>
+                        <li>Prototyped smooth comic panel transitions – reframing, brightening, and panning across cells – to drive design discussions</li>
                     </ul>
                 </div>
             </div>
@@ -328,40 +357,34 @@
                     <img src="assets/dotda/raid.jpg" alt="raid" class="screenshot">
                     <img src="assets/dotda/guild.jpg" alt="guild" class="screenshot">
                 </div>
-                <div id="5th_campaign" class="unity csharp git sql vs jira redis mongo game mobile">
+                <div id="5th_campaign" class="unity csharp git sql vs jira redis mongo game mobile" data-duration-months="3">
                     <h4 class="collapse-header">Campaigns Guild Feature</h4>
                     <ul class="collapse-content">
-                        <li>Collaborate with game designer and software engineer to create technical design documents and plan feature development tasks</li>
-                        <li>Implement the campaign feature across server and client components</li>
-                        <ul>
-                            <li>Move across the shared campaign map with an energy resource</li>
-                            <li>Strategically defeat nodes to limit buffs across the event</li>
-                            <li>Compile rewards from loot pools and deliver them to player inboxes once the event is complete</li>
-                        </ul>
-                        <li>Complete feature development; game sunset before public release</li>
+                        <li>Collaborated with designer and engineer on technical design documents for a full guild campaign feature</li>
+                        <li>Implemented across server and client: shared map navigation with an energy resource, strategic node defeats to limit event-wide buffs, and automated loot delivery to player inboxes</li>
+                        <li>Completed full feature development before the game's sunset</li>
                     </ul>
                 </div>
 
-                <div id="5th_ui" class="unity csharp git vs jira game mobile">
+                <div id="5th_ui" class="unity csharp git vs jira game mobile" data-duration-months="12">
                     <h4 class="collapse-header">UI</h4>
                     <ul class="collapse-content">
-                        <li>Faithfully implement UI intent from art team mockups and wire frames</li>
-                        <li>Make UI/UX changes for improved clarity, player retention and monetization</li>
-                        <li>Handle the necessary changes for a PC conversion including dynamic scaling and mouseover text</li>
+                        <li>Implemented UI from art mockups and wireframes</li>
+                        <li>Identified and made UX improvements for clarity, retention, and monetization</li>
+                        <li>Converted mobile UI to PC with dynamic scaling and mouseover text</li>
                     </ul>
                 </div>
 
-                <div id="5th_support" class="unity csharp git js sql vs jira redis mongo java game mobile">
+                <div id="5th_support" class="unity csharp git js sql vs jira redis mongo java game mobile tools" data-duration-months="14">
                     <h4 class="collapse-header">Support</h4>
                     <ul class="collapse-content">
-                        <li>Build, test, and maintain features across the server, client and admin tools</li>
-                        <li>Efficiently fix bugs, add functionality, and review code changes</li>
+                        <li>Built, tested, and maintained features across the server, client, and admin tools, including bug fixes and code reviews</li>
                     </ul>
                 </div>
             </div>
         </div>
 
-        <div id="northrop" class="js clearcase jira sql eclipse git java rally c python" data-start="2012-12" data-end="2018-10">
+        <div id="northrop" class="js clearcase jira sql eclipse git java rally c defense" data-start="2012-12" data-end="2018-10">
             <h3 class="collapse-header">Software Engineer 2 at Northrop Grumman (6 years)</h3>
             <div class="collapse-content">
                 <div class="tile-box">
@@ -370,62 +393,52 @@
                     <img src="assets/ng/pod.jpg" alt="pod" class="screenshot">
                     <img src="assets/ng/map.png" alt="map" class="screenshot">
                 </div>
-                <div id="northrop_accreditation" class="js java c eclipse clearcase git rally">
+                <div id="northrop_accreditation" class="js java c eclipse clearcase git rally defense" data-duration-months="12">
                     <h4 class="collapse-header">Mission Control Accreditation</h4>
                     <ul class="collapse-content">
-                        <li>Create the cross-team integration environment for large (50,000+ man-hour) contract</li>
-                        <ul>
-                            <li>Include necessary hardware components as well as software components with methods to rebuild updates</li>
-                        </ul>
-                        <li>Create and follow a detailed series of test steps for accreditation</li>
-                        <li>Manage team of 5 engineers with source control in git and tasking in Rally</li>
-                        <li>Create RESTful Java API to forward messages to scripts and firmware</li>
-                        <li>Successfully complete accreditation, leading to contract extension</li>
+                        <li>Led integration environment setup for a 50,000+ man-hour government contract, coordinating hardware and software components across teams</li>
+                        <li>Managed a team of 5 engineers</li>
+                        <li>Authored and executed the full accreditation test procedure</li>
+                        <li>Built a RESTful Java API to forward messages between mission control scripts and firmware</li>
+                        <li>Successfully completed accreditation, directly resulting in a contract extension</li>
                     </ul>
                 </div>
 
-                <div id="northrop_browser" class="js clearcase jira">
+                <div id="northrop_browser" class="js clearcase jira defense tools" data-duration-months="18">
                     <h4 class="collapse-header">Mission Control Browser Tools</h4>
                     <ul class="collapse-content">
-                        <li>Prototype requested functionality and regularly meet with stakeholders to guide iterative improvements</li>
-                        <li>Visualize and control hardware status including power, diagnostic reports and temperature</li>
-                        <li>Manage resource allocation for pod components (antenna control, signal filtering, directional scanning)</li>
-                        <li>Build and configure sequences of signal processing and analysis steps</li>
-                        <li>Visualize location data over time for receiving platform and tracked signals</li>
+                        <li>Built browser-based tools through iterative stakeholder collaboration: hardware status visualization (power, diagnostics, temperature), resource allocation for pod components (antenna, filtering, scanning), signal processing pipeline configuration, and platform location tracking over time</li>
                     </ul>
                 </div>
 
-                <div id="northrop_prototype" class="java js sql eclipse clearcase git jira">
+                <div id="northrop_prototype" class="java js sql eclipse clearcase git jira defense" data-duration-months="36">
                     <h4 class="collapse-header">Prototype Internal R&D Projects</h4>
                     <ul class="collapse-content">
-                        <li>Display known network layout with the Java Universal Network/Graph Framework (JUNG)</li>
-                        <li>Procedurally configure connected devices with the Simple Network Management Protocol (SNMP)</li>
-                        <li>Exploratory project utilizing minimax in a rule-based environment to respond to network input</li>
+                        <li>Network visualization using JUNG, procedural device configuration via SNMP, and a minimax-based rule engine for automated network response</li>
                     </ul>
                 </div>
 
-                <div id="northrop_chassistest" class="python clearcase jira">
+                <div id="northrop_chassistest" class="python clearcase jira defense tools" data-duration-months="6">
                     <h4 class="collapse-header">Sensor Chassis Test Suite</h4>
                     <ul class="collapse-content">
-                        <li>Startup and run diagnostic on test chassis</li>
-                        <li>Install and validate test suite on an air-gapped network</li>
+                        <li>Developed and validated diagnostic test suite for sensor chassis, deployed on an air-gapped network</li>
                     </ul>
-                </div> 
+                </div>
 
-                <div id="northrop_flight" class="java">
+                <div id="northrop_flight" class="java defense" data-duration-months="2">
                     <h4 class="collapse-header">Sensor Calibration Real-World Flight Testing</h4>
                     <ul class="collapse-content">
-                        <li>Validate processes documentation by running against real hardware</li>
-                        <li>Direct a pilot to predetermined points near the facility antennae</li>
+                        <li>Validated sensor calibration procedures against real hardware during live flight tests</li>
+                        <li>Directed pilot navigation to predetermined antenna coverage points</li>
                     </ul>
                 </div>
             </div>
         </div>
 
         <div id="doublea" class="java git csharp eclipse xna game mobile" data-start="2011-06" data-end="2012-11">
-            <h3 class="collapse-header">Generalist Programmer / Co-owner at DoubleA Studios (1.5 years)</h3>
+            <h3 class="collapse-header">Generalist Programmer / Co-owner at DoubleA Studios – College Startup (1.5 years)</h3>
             <div class="collapse-content">
-                <div id="doublea_kelkom" class="java git eclipse">
+                <div id="doublea_kelkom" class="java git eclipse" data-duration-months="12">
                     <h4 class="collapse-header">Kelkom</h4>
                     <ul class="collapse-content">
                         <li>LAN-based medical appointment scheduling and metrics system</li>
@@ -433,7 +446,7 @@
                     </ul>
                 </div>
 
-                <div id="doublea_ttrpg" class="java git eclipse">
+                <div id="doublea_ttrpg" class="java git eclipse game tools" data-duration-months="6">
                     <h4 class="collapse-header">TTRPG Visualization Tool</h4>
                     <ul class="collapse-content">
                         <li>Character manager and visualization tool for table-top RPGs (Primarily D&D)</li>
@@ -441,7 +454,7 @@
                     </ul>
                 </div>
 
-                <div id="doublea_taskbar" class="csharp git eclipse">
+                <div id="doublea_taskbar" class="csharp git eclipse" data-duration-months="6">
                     <h4 class="collapse-header">Windows Taskbar Messaging Tool</h4>
                     <ul class="collapse-content">
                         <li>Broadcast messaging system for posts and advertising in a Windows toolbar</li>
@@ -449,7 +462,7 @@
                     </ul>
                 </div>
 
-                <div id="doublea_fromspace" class="csharp xna game console">
+                <div id="doublea_fromspace" class="csharp xna game console" data-duration-months="12">
                     <h4 class="collapse-header">From Space (Twin-stick shooter)</h4>
                     <ul class="collapse-content">
                         <li>3 unique playable races</li>
@@ -468,10 +481,12 @@
         <div id="personal" class="git unity csharp vs vscode game js">
             <h3 class="collapse-header">Side Projects</h3>
             <div class="collapse-content">
+                <p>Outside of work I regularly build small games and tools to explore ideas, learn new techniques, or just have fun. None of this is polished or professional-grade work – it's how I stay sharp and curious about the craft.</p>
                 <div id="personal_portfolio" class="js">
                     <h4 class="collapse-header">Online Portfolio (this page)</h4>
                     <ul class="collapse-content">
-                        <li>Use jquery to sort experience against a list of languages and tools</li>
+                        <li>Filter and search experience by technology, with preset views and per-skill ratings and time totals</li>
+                        <li>PDF/print export, image lightbox, and hover tooltips showing filter tags per subsection</li>
                         <li><a href="https://github.com/Zekzek/Portfolio" target="_blank">github</a></li>
                     </ul>
                 </div>
@@ -487,7 +502,7 @@
                     </ul>
                 </div>
 
-                <div id="personal_gearswap" class="game">
+                <div id="personal_gearswap" class="game tools">
                     <h4 class="collapse-header">FFXI Gearswap Scripts</h4>
                     <ul class="collapse-content">
                         <li>Dynamic equipment optimization system using weighted stat evaluation</li>
@@ -496,16 +511,7 @@
                     </ul>
                 </div>
                 
-                <div id="personal_dice" class="unity csharp">
-                    <h4 class="collapse-header">Dice Game</h4>
-                    <ul class="collapse-content">
-                        <li>World space UI elements</li>
-                        <li>Physics-based RNG</li>
-                        <li><a href="https://github.com/Zekzek/DiceRoller" target="_blank">github</a></li>
-                    </ul>
-                </div>
-
-                <div id="personal_botrepair" class="csharp unity vs game">
+<div id="personal_botrepair" class="csharp unity vs game">
                     <h4 class="collapse-header">Manic Space Bot Repair (GGJ 2020)</h4>
                     <ul class="collapse-content">
                         <li>Gather parts and fix the bots so they can repair the ship</li>
@@ -566,10 +572,10 @@
             </div>
         </div>
 
-        <div id="school" class="eclipse java git c">
+        <div id="school" class="eclipse java git c always-show">
             <h3 class="collapse-header">Education</h3>
             <div class="collapse-content">
-                <div id="school_sacstate" class="eclipse java git">
+                <div id="school_sacstate" class="eclipse java git always-show">
                     <h4 class="collapse-header">Sacramento State</h4>
                     <ul class="collapse-content">
                         <li>Received a bachelor's degree in computer science</li>

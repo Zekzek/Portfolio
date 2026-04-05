@@ -7,13 +7,13 @@ function setup_all_show_hide() {
 }
 
 var EXPERIENCE_SECTIONS = [
-    'azra', 'azra_precommit', 'azra_recordandplay', 'azra_performancemetrics', 'azra_loadtesting', 'azra_serverstresstest', 'azra_dailyreports',
+    'azra', 'azra_precommit', 'azra_recordandplay', 'azra_harvesttime', 'azra_performancemetrics', 'azra_shaderprewarm', 'azra_loadtesting', 'azra_serverstresstest', 'azra_agenticdev', 'azra_dailyreports',
     'ea', 'ea_precommit', 'ea_awsdevicefarm', 'ea_recordandplay', 'ea_testreporting', 'ea_testautomation',
     'ironhorse', 'ironhorse_steamtown', 'ironhorse_comic',
     '5th', '5th_campaign', '5th_ui', '5th_support',
     'northrop', 'northrop_accreditation', 'northrop_browser', 'northrop_prototype', 'northrop_chassistest', 'northrop_flight',
     'doublea', 'doublea_kelkom', 'doublea_ttrpg', 'doublea_taskbar', 'doublea_fromspace',
-    'personal', 'personal_portfolio', 'personal_hexworld', 'personal_gearswap', 'personal_dice', 'personal_botrepair', 'personal_home', 'personal_lumen', 'personal_ravenousvoid', 'personal_herdingcats', 'personal_gastank', 'personal_jigsaw',
+    'personal', 'personal_portfolio', 'personal_hexworld', 'personal_gearswap', 'personal_botrepair', 'personal_home', 'personal_lumen', 'personal_ravenousvoid', 'personal_herdingcats', 'personal_gastank', 'personal_jigsaw',
     'school', 'school_sacstate', 'school_delta'
 ];
 
@@ -25,7 +25,8 @@ function setup_all_filters() {
 
 var FILTER_KEYS = [
     'csharp', 'python', 'java', 'js', 'sql', 'c',
-    'unity', 'vs', 'intellij', 'eclipse', 'git', 'perforce', 'jira', 'aws', 'jenkins', 'teamcity', 'rally', 'redis', 'mongo', 'bigquery', 'gamemaker', 'clearcase'
+    'unity', 'vs', 'intellij', 'eclipse', 'git', 'perforce', 'jira', 'aws', 'jenkins', 'teamcity', 'rally', 'redis', 'mongo', 'bigquery', 'gamemaker', 'clearcase',
+    'game', 'tools', 'defense'
 ];
 
 function setup_show_hide(id) {
@@ -33,10 +34,11 @@ function setup_show_hide(id) {
 
     $(selector).addClass('showing');
 
-    var collapseButton = '<button class="showhide">-</button>'
-    $(selector + " .collapse-header:first").prepend(collapseButton + ' ');
+    var $header = $(selector).children('.collapse-header').first();
+    $header.prepend('<button class="showhide">-</button> ');
 
-    $(selector + ' .showhide:first').click(function() {
+    $header.on('click', function(e) {
+        if ($(e.target).closest('a').length) return; // don't intercept link clicks
         var wasShowing = $(selector).hasClass('showing');
         set_mode('manual');
         setSectionShowing($(selector), !wasShowing);
@@ -55,7 +57,7 @@ function setup_filter(key) {
 
 function set_mode(mode) {
     currentMode = mode;
-    // Visual mode indicator removed — only adjust filter visual state
+    // Visual mode indicator removed – only adjust filter visual state
     if (mode === 'filter') {
         $('.filter-label').removeClass('inactive');
     } else {
@@ -64,7 +66,9 @@ function set_mode(mode) {
 }
 
 // Setup global checkbox change handler
-$(document).on('change', '.filter-checkbox', applyFilterMode);
+$(document).on('change', '.filter-checkbox', function() {
+    applyFilterMode();
+});
 
 function hasAnyActiveFilter($element, activeFilters) {
     for (var i = 0; i < activeFilters.length; i++) {
@@ -99,8 +103,18 @@ function update_filters() {
     // Hide sections that don't have any of the active filter classes
     $('.main-section > div').each(function() {
         var $section = $(this);
+
+        if ($section.hasClass('always-show')) {
+            setSectionShowing($section, true);
+            $section.find('div[id]').each(function() {
+                var $sub = $(this);
+                setSectionShowing($sub, $sub.hasClass('always-show'));
+            });
+            return;
+        }
+
         var hasActiveFilter = hasAnyActiveFilter($section, activeFilters);
-        
+
         if (hasActiveFilter && $section.hasClass('hiding')) {
             setSectionShowing($section, true);
         } else if (!hasActiveFilter && $section.hasClass('showing')) {
@@ -161,7 +175,7 @@ function sortSkillsByRating() {
         };
     });
     
-    // Sort each section's labels by star rating (highest to lowest), then alphabetically
+    // Sort each section's labels by star rating > duration > alphabetical
     for (var sectionName in sections) {
         var section = sections[sectionName];
         section.$labels.sort(function(a, b) {
@@ -169,15 +183,16 @@ function sortSkillsByRating() {
             var keyB = $(b).find('.filter-checkbox').val();
             var ratingA = STAR_RATINGS[keyA] || 0;
             var ratingB = STAR_RATINGS[keyB] || 0;
-            
-            // First sort by rating (descending)
-            if (ratingB !== ratingA) {
-                return ratingB - ratingA;
-            }
-            
-            // Then sort alphabetically by skill name
-            var nameA = $(a).find('span:not(.stars)').text().toUpperCase();
-            var nameB = $(b).find('span:not(.stars)').text().toUpperCase();
+
+            if (ratingB !== ratingA) return ratingB - ratingA;
+
+            var durA = parseSortableMonths($(a).find('span.time').text());
+            var durB = parseSortableMonths($(b).find('span.time').text());
+
+            if (durB !== durA) return durB - durA;
+
+            var nameA = $(a).find('span:not(.stars):not(.time)').first().text().toUpperCase();
+            var nameB = $(b).find('span:not(.stars):not(.time)').first().text().toUpperCase();
             return nameA.localeCompare(nameB);
         });
         
@@ -216,24 +231,69 @@ function setSectionShowing($section, showing) {
     if (typeof $section === 'string') $section = $('#' + $section);
     if (!$section || !$section.length) return;
 
+    var $btn = $section.children('.collapse-header').find('.showhide').first();
+
     if (showing) {
         $section.find('.collapse-content:first').show(200);
         $section.removeClass('hiding').addClass('showing');
-        $section.find('.showhide:first').text('-');
+        $btn.text('-');
     } else {
         $section.find('.collapse-content:first').hide(200);
         $section.removeClass('showing').addClass('hiding');
-        $section.find('.showhide:first').text('+');
+        $btn.text('+');
     }
+}
+
+// --- Show All / Collapse All ---
+
+function showAll() {
+    set_mode('manual');
+    EXPERIENCE_SECTIONS.forEach(function(id) {
+        setSectionShowing($('#' + id), true);
+    });
+}
+
+function collapseAll() {
+    set_mode('manual');
+    EXPERIENCE_SECTIONS.forEach(function(id) {
+        setSectionShowing($('#' + id), false);
+    });
+}
+
+// --- Company label tooltips for subsection headers ---
+
+function addSubsectionLabels() {
+    // Build display name map from sidebar labels
+    var displayNames = {};
+    $('.filter-checkbox').each(function() {
+        var key = $(this).val();
+        var name = $(this).closest('.filter-label').find('span:not(.stars):not(.time)').first().text().trim();
+        displayNames[key] = name;
+    });
+
+    $('.main-section > div').each(function() {
+        var $company = $(this);
+        $company.find('div[id] > .collapse-header').each(function() {
+            var $subsection = $(this).parent();
+            var classes = ($subsection.attr('class') || '').split(/\s+/);
+            var tags = classes.filter(function(c) {
+                return FILTER_KEYS.indexOf(c) !== -1;
+            }).map(function(c) {
+                return displayNames[c] || c;
+            });
+            var label = tags.join(' \u00b7 ');
+            $(this).attr('data-label', label);
+        });
+    });
 }
 
 $(setup_all_show_hide);
 $(setup_all_filters);
 $(draw_stars);
-$(sortSkillsByRating);
-// Compute and render total time per filterable tag
+// Compute and render total time per filterable tag, then sort by rating > duration
 $(function() {
     computeFilterTimes();
+    sortSkillsByRating();
 });
 
 
@@ -341,19 +401,37 @@ function computeFilterTimes() {
         totals[$(this).val()] = { months: 0, ongoing: false };
     });
 
-    // Iterate top-level experience sections only
     $('.main-section > div').each(function() {
-        var $exp = $(this);
-        // Skip duration calculation for Side Projects and Education
-        if (isExcluded($exp)) return;
+        var $section = $(this);
+        if (isExcluded($section)) return;
 
-        var parsed = parseElementDates($exp);
+        var sectionParsed = parseElementDates($section);
+        var $subsWithDuration = $section.find('div[id][data-duration-months]');
 
-        // add this experience's duration to any filter keys matching classes on the element
-        for (var key in totals) {
-            if ($exp.hasClass(key)) {
-                totals[key].months += parsed.months;
-                totals[key].ongoing = totals[key].ongoing || parsed.ongoing;
+        if ($subsWithDuration.length > 0) {
+            // Sum subsection durations per skill, then cap at actual section duration
+            var sectionCap = sectionParsed.months;
+            var sectionTotals = {};
+            $subsWithDuration.each(function() {
+                var $sub = $(this);
+                var months = parseInt($sub.attr('data-duration-months'), 10);
+                for (var key in totals) {
+                    if ($sub.hasClass(key)) {
+                        sectionTotals[key] = (sectionTotals[key] || 0) + months;
+                    }
+                }
+            });
+            for (var key in sectionTotals) {
+                totals[key].months += Math.min(sectionTotals[key], sectionCap);
+                totals[key].ongoing = totals[key].ongoing || sectionParsed.ongoing;
+            }
+        } else {
+            // Fall back to section-level duration
+            for (var key in totals) {
+                if ($section.hasClass(key)) {
+                    totals[key].months += sectionParsed.months;
+                    totals[key].ongoing = totals[key].ongoing || sectionParsed.ongoing;
+                }
             }
         }
     });
@@ -366,7 +444,8 @@ function computeElementMonths($exp) {
     return parseElementDates($exp).months;
 }
 
-// Update each top-level header to show the computed shorthand duration in parentheses
+// Update each top-level header to show the computed shorthand duration in parentheses.
+// Operates on the raw text node to preserve child elements like the showhide button.
 function updateHeaderDurations() {
     $('.main-section > div').each(function() {
         var $exp = $(this);
@@ -374,19 +453,23 @@ function updateHeaderDurations() {
         var months = computeElementMonths($exp);
         var shorthand = humanizeMonths(months);
 
-        // find the header node (h3 or .collapse-header)
         var $header = getHeader($exp);
         if (!$header) return;
-        var text = $header.text();
 
-        // Replace existing parenthetical duration if present, otherwise append
-        if (/\([^)]*\)$/.test(text.trim())) {
-            // replace trailing parenthesis content
-            var newText = text.replace(/\([^)]*\)$/, '(' + shorthand + ')');
-            $header.text(newText);
+        // Find the last text node inside the header (after the showhide button)
+        var textNode = $header.contents().filter(function() {
+            return this.nodeType === 3;
+        }).last();
+        if (!textNode.length) return;
+
+        var text = textNode[0].nodeValue.trim();
+        var newValue;
+        if (/\([^)]*\)$/.test(text)) {
+            newValue = ' ' + text.replace(/\([^)]*\)$/, '(' + shorthand + ')');
         } else {
-            $header.text(text + ' (' + shorthand + ')');
+            newValue = ' ' + text + ' (' + shorthand + ')';
         }
+        textNode[0].nodeValue = newValue;
     });
 }
 
@@ -483,14 +566,13 @@ function updateSummaryExperience() {
     var summary = $('.main-section > p:first');
     if (!summary.length) return;
     var text = summary.text();
-    // Replace existing "over X years" or similar
+    // Replace "over X years" (legacy pattern) or "with X years" (current pattern)
     if (/over\s+\d+\s+years/.test(text)) {
-        var newText = text.replace(/over\s+\d+\s+years/, 'over ' + years + ' years');
-        summary.text(newText);
-    } else {
-        // Insert phrase after first sentence start
-        summary.text(text + ' (over ' + years + ' years experience)');
+        summary.text(text.replace(/over\s+\d+\s+years/, 'over ' + years + ' years'));
+    } else if (/with\s+\d+\s+years/.test(text)) {
+        summary.text(text.replace(/with\s+\d+\s+years/, 'with ' + years + ' years'));
     }
+    // If neither pattern matches, leave the summary as-is
 }
 
 // Run summary update on load
@@ -504,6 +586,22 @@ function prepareForPrint() {
     // Print with current view state
     window.print();
 }
+
+// Company labels must run after showhide buttons are injected
+$(function() {
+    addSubsectionLabels();
+});
+
+// Show All / Collapse All handlers + default on load
+$(function() {
+    $('#btn-show-all').on('click', showAll);
+    $('#btn-collapse-all').on('click', collapseAll);
+
+    // Default: Games + Tools checked
+    $('#game_filter').prop('checked', true);
+    $('#tools_filter').prop('checked', true);
+    applyFilterMode();
+});
 
 // Attach print button handler
 $(function() {
@@ -529,6 +627,15 @@ function humanizeMonths(months) {
     var years = Math.round(months / 12);
     if (years <= 0) years = 1;
     return years + (years === 1 ? ' year' : ' years');
+}
+
+function parseSortableMonths(timeText) {
+    if (!timeText) return 0;
+    var yearMatch = timeText.match(/(\d+)y/);
+    var monthMatch = timeText.match(/(\d+)m/);
+    if (yearMatch) return parseInt(yearMatch[1], 10) * 12;
+    if (monthMatch) return parseInt(monthMatch[1], 10);
+    return 0;
 }
 
 function humanizeMonthsShort(months) {

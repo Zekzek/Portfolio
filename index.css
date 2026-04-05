@@ -16,8 +16,8 @@
     --other-text-color: #999999;/**/
 
     /**/
-    --main-bg-color: #000000;
-    --other-bg-color: #222222;
+    --main-bg-color: #0d1117;
+    --other-bg-color: #161b22;
     --border-color: #AAAAAA;
     --highlight-color: #BBDDFF;
     --main-text-color: #ffffff;
@@ -70,7 +70,46 @@ div.sidebar::-webkit-scrollbar-thumb:hover {
     background: var(--highlight-color);
 }
 
-/* mode indicator removed — display simplified per user preference */
+/* LinkedIn link in sidebar */
+.linkedin-link {
+    text-align: center;
+    margin: 2px 0 10px;
+    font-size: 0.82rem;
+}
+
+/* Preset filter buttons */
+.preset-filters {
+    display: flex;
+    gap: 6px;
+    margin: 4px 8px 10px;
+}
+
+.preset-btn {
+    flex: 1;
+    padding: 5px 6px;
+    background-color: var(--other-bg-color);
+    color: var(--other-text-color);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-size: 0.78rem;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+}
+
+.preset-btn:hover {
+    background-color: rgba(187,221,255,0.12);
+    color: var(--main-text-color);
+}
+
+.preset-btn.active {
+    background-color: var(--highlight-color);
+    color: var(--main-bg-color);
+    font-weight: bold;
+    border-color: var(--highlight-color);
+}
+
+/* mode indicator removed – display simplified per user preference */
 
 div.main-section {
     margin-left: 335px;
@@ -82,16 +121,42 @@ div.main-section {
 
 .collapse-header {
     width: 60%;
-    background-color: var(--other-bg-color);
+    background-color: #1e2d3d;
     margin-bottom: 2px;
     margin-top: 2px;
-    background-image: linear-gradient(to right, var(--other-bg-color), var(--main-bg-color));
+    background-image: linear-gradient(to right, #1e2d3d, var(--main-bg-color));
+    cursor: pointer;
+}
+
+h3.collapse-header {
+    width: 80%;
 }
 
 .collapse-header a {
     pointer-events: auto;
     z-index: 10;
     position: relative;
+}
+
+h4.collapse-header[data-label] {
+    position: relative;
+}
+
+h4.collapse-header[data-label]:hover::after {
+    content: attr(data-label);
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    background: var(--highlight-color);
+    color: var(--main-bg-color);
+    padding: 1px 8px;
+    font-size: 0.75rem;
+    font-weight: normal;
+    border-radius: 3px;
+    pointer-events: none;
+    white-space: nowrap;
+    opacity: 0.9;
 }
 
 .hiding .collapse-header {
