@@ -10,7 +10,9 @@
     "dev": "npm run dev -w sites/portfolio",
     "build": "npm run build -w sites/portfolio",
     "preview": "npm run preview -w sites/portfolio",
-    "test": "npm test -w sites/portfolio"
+    "test": "npm test --workspaces --if-present",
+    "dev:mtg": "npm run dev -w sites/mtg",
+    "build:mtg": "npm run build -w sites/mtg"
   },
   "engines": {
     "node": ">=22.12.0"

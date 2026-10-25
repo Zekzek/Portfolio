@@ -1,0 +1,20 @@
+{
+  "name": "@zekzek/mtg",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@astrojs/svelte": "9.0.1",
+    "@zekzek/ui": "*",
+    "astro": "7.3.8",
+    "svelte": "5.57.2"
+  },
+  "devDependencies": {
+    "vitest": "5.0.3"
+  }
+}

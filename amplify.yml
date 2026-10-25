@@ -12,7 +12,7 @@ frontend:
         - npm ci
     build:
       commands:
-        - npm test
+        - npm test -w sites/portfolio
         - npm run build
   artifacts:
     baseDirectory: sites/portfolio/dist

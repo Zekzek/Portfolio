@@ -6,7 +6,19 @@ Built with [Astro](https://astro.build) as an npm workspace:
 
 ```
 sites/portfolio/   the CV site (deploys to www.zekzek.net via AWS Amplify on push to main)
+sites/mtg/         Deck Shelf: Commander decks, card text and proxy art (local for now; not deployed)
 packages/ui/       shared look for zekzek.net sites: color/type tokens, fonts, base layout, theme toggle
+```
+
+### Deck Shelf (sites/mtg)
+
+Svelte inside Astro. Its data and actions come from `MTG/DeckSite/server.py` (in the OneDrive MTG folder),
+which reads the deck lists, the merged card data and DeckGen's folders. Deck data never goes in this repo.
+
+```
+npm run build:mtg                       # build the page once
+python DeckSite/server.py               # in the MTG folder; then open http://127.0.0.1:8765
+npm run dev:mtg                         # or: live-reload page on :4330, data proxied to the server above
 ```
 
 ## Everyday use

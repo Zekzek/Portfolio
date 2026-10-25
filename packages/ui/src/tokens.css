@@ -17,6 +17,8 @@
   --accent-soft: rgb(227 168 79 / 0.14);
   --on-accent: #1b1306;
   --focus: #f3c983;
+  --good: #6cc59a;
+  --warn: #e8875f;
   color-scheme: dark;
 
   /* type */
@@ -59,6 +61,8 @@
     --accent-soft: rgb(147 96 15 / 0.1);
     --on-accent: #ffffff;
     --focus: #93600f;
+    --good: #1d7a50;
+    --warn: #b04a1f;
     color-scheme: light;
   }
 }
@@ -75,6 +79,8 @@
   --accent-soft: rgb(147 96 15 / 0.1);
   --on-accent: #ffffff;
   --focus: #93600f;
+  --good: #1d7a50;
+  --warn: #b04a1f;
   color-scheme: light;
 }
 

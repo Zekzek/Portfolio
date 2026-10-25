@@ -1,0 +1,8 @@
+---
+import BaseLayout from "@zekzek/ui/BaseLayout.astro";
+import App from "../components/App.svelte";
+---
+
+<BaseLayout title="Deck Shelf" description="Commander decks, card text and proxy art in one place.">
+  <App client:only="svelte" />
+</BaseLayout>
