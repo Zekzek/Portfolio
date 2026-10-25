@@ -1,7 +1,8 @@
-# AWS Amplify build for www.zekzek.net (sites/portfolio).
-# Tests run before the build, so a change that breaks the skill filters can't deploy.
-# When the deck app (sites/mtg) gets its own Amplify app, switch this file to the
-# monorepo format (applications: with appRoot) and set AMPLIFY_MONOREPO_APP_ROOT per app.
+# AWS Amplify build for zekzek.net. One Amplify app, one site per branch:
+#   main      -> www.zekzek.net  (sites/portfolio; SITE unset)
+#   deck-app  -> mtg.zekzek.net  (sites/mtg; branch env vars SITE=mtg, PUBLIC_DECKSITE_MODE=hosted)
+# Tests run before the build, so a change that breaks a site's tests can't deploy.
+# Needs the Amazon Linux 2023 build image (_CUSTOM_IMAGE=amplify:al2023) for Node 22.
 version: 1
 frontend:
   phases:
@@ -12,10 +13,12 @@ frontend:
         - npm ci
     build:
       commands:
-        - npm test -w sites/portfolio
-        - npm run build
+        - echo "Building sites/${SITE:-portfolio}"
+        - npm test -w "sites/${SITE:-portfolio}"
+        - npm run build -w "sites/${SITE:-portfolio}"
+        - rm -rf deploy && cp -r "sites/${SITE:-portfolio}/dist" deploy
   artifacts:
-    baseDirectory: sites/portfolio/dist
+    baseDirectory: deploy
     files:
       - "**/*"
   cache:

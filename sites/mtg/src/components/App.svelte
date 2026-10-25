@@ -1,11 +1,13 @@
 <script lang="ts">
   import { loadArt, loadCards, loadDecks, loadVersions } from "../lib/api";
+  import { HOSTED, authState, type AuthState } from "../lib/hosted";
   import { parseRoute, type Route } from "../lib/route";
   import type { Art, Cards, Deck } from "../lib/types";
   import CompareView from "./CompareView.svelte";
   import DeckList from "./DeckList.svelte";
   import SearchView from "./SearchView.svelte";
   import DeckView from "./DeckView.svelte";
+  import SignIn from "./SignIn.svelte";
 
   let decks = $state<Deck[] | null>(null);
   let cards = $state<Cards>({});
@@ -33,7 +35,22 @@
     return () => removeEventListener("hashchange", onHash);
   });
 
-  load();
+  // Hosted: sign in first. Locally there's nothing to sign in to.
+  let auth = $state<AuthState | null>(HOSTED ? null : { signedIn: true, email: "" });
+  if (HOSTED) {
+    authState()
+      .then((a) => { auth = a; if (a.signedIn) load(); })
+      .catch((e) => { auth = { signedIn: false, error: (e as Error).message }; });
+  } else {
+    load();
+  }
+
+  // Hosted art links are signed for an hour; refresh them well before that.
+  $effect(() => {
+    if (!HOSTED) return;
+    const timer = setInterval(() => { if (auth?.signedIn) reloadArt().catch(() => {}); }, 40 * 60 * 1000);
+    return () => clearInterval(timer);
+  });
 
   // Decks can change outside this tab (deck.py in a Claude conversation, another tab). Check when the
   // tab comes back into view and every 30 seconds while it's visible; reload if any version moved.
@@ -82,11 +99,19 @@
 
 {#if notice}<p class="notice" role="status">{notice}</p>{/if}
 
-{#if error}
+{#if !auth}
+  <div class="state"><p class="eyebrow">Checking sign-in…</p></div>
+{:else if !auth.signedIn}
+  <SignIn error={auth.error} />
+{:else if error}
   <div class="state">
     <h1>Can't load the decks</h1>
     <p>{error}</p>
-    <p class="hint">The page needs the local server. In your MTG folder run <code>python DeckSite/server.py</code>, then reload.</p>
+    {#if HOSTED}
+      <p class="hint">The deck data may not have been uploaded yet: in your MTG folder run <code>python DeckSite/export.py</code>.</p>
+    {:else}
+      <p class="hint">The page needs the local server. In your MTG folder run <code>python DeckSite/server.py</code>, then reload.</p>
+    {/if}
     <button class="btn" onclick={load}>Try again</button>
   </div>
 {:else if !decks}
@@ -100,7 +125,7 @@
 {:else if route.view === "search"}
   <SearchView q={route.q} {decks} {cards} {art} openCard={route.card} onArtChanged={reloadArt} />
 {:else}
-  <DeckList {decks} {cards} />
+  <DeckList {decks} {cards} email={auth.signedIn ? auth.email : ""} />
 {/if}
 
 <style>

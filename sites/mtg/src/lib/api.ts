@@ -1,15 +1,21 @@
 // Loading data and calling the local server's actions (MTG/DeckSite/server.py).
+// Hosted (mtg.zekzek.net): the same files come from the private bucket, uploaded by DeckSite/export.py.
+import { HOSTED, getJson as hostedJson, signAll } from "./hosted";
 import type { Art, Cards, Deck, EditOp, HistoryEntry } from "./types";
 
-async function getJson<T>(url: string): Promise<T> {
+async function localJson<T>(url: string): Promise<T> {
   const r = await fetch(url, { cache: "no-store" });
   if (!r.ok) throw new Error(`${url}: ${r.status} ${(await r.text()).slice(0, 200)}`);
   return r.json();
 }
 
+/** "/data/decks.json" locally; "data/decks.json" from the bucket when hosted. */
+const getJson = <T>(path: string): Promise<T> => (HOSTED ? hostedJson<T>(path.slice(1)) : localJson<T>(path));
+
 export const loadDecks = () => getJson<Deck[]>("/data/decks.json");
 export const loadCards = () => getJson<Cards>("/data/cards.json");
-export const loadArt = () => getJson<Art>("/data/art.json");
+/** Hosted art links point into the private bucket ("s3:..."), so they're signed after loading. */
+export const loadArt = async () => (HOSTED ? signAll(await getJson<Art>("/data/art.json")) : getJson<Art>("/data/art.json"));
 export const loadVersions = () => getJson<Record<string, number>>("/data/versions.json");
 export const loadHistory = (deck: string) => getJson<HistoryEntry[]>(`/data/history/${encodeURIComponent(deck)}.json`);
 

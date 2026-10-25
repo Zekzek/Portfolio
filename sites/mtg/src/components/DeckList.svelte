@@ -5,7 +5,9 @@
   import Mana from "./Mana.svelte";
   import { STATUS_LABEL, countLabel } from "../lib/labels";
 
-  let { decks, cards }: { decks: Deck[]; cards: Cards } = $props();
+  import { HOSTED, signOut } from "../lib/hosted";
+
+  let { decks, cards, email = "" }: { decks: Deck[]; cards: Cards; email?: string } = $props();
 
   // Families: each deck without a parent, followed by its forks (and their forks).
   const families = $derived.by(() => {
@@ -37,6 +39,9 @@
         Search all decks
       </a>
       <ThemeToggleButton />
+      {#if HOSTED}
+        <button class="signout" onclick={() => signOut()} title={email ? `Signed in as ${email}` : undefined}>Sign out</button>
+      {/if}
     </div>
   </header>
 
@@ -93,6 +98,8 @@
     background: var(--surface); color: var(--faint); text-decoration: none; font-size: var(--step--1);
   }
   .search-link:hover { border-color: var(--accent); color: var(--fg); }
+  .signout { font: inherit; font-size: var(--step--1); padding: 0.45rem 0.7rem; border: 1px solid var(--line); border-radius: var(--radius-m); background: transparent; color: var(--muted); cursor: pointer; }
+  .signout:hover { color: var(--fg); border-color: var(--faint); }
   h1 { font-size: var(--step-4); letter-spacing: -0.025em; font-weight: 720; margin-top: var(--space-1); }
   .sub { color: var(--muted); margin-top: var(--space-2); }
 

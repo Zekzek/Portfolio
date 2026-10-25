@@ -1,0 +1,207 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >-
+  Deck Shelf (mtg.zekzek.net): Google sign-in limited to an allow-list, and a private bucket for the deck
+  data and proxy art that only signed-in, allowed users can read.
+
+# Deploy (from the repo root):
+#   aws cloudformation deploy --profile portfolio --region us-east-1 --stack-name decksite \
+#     --template-file sites/mtg/infra/auth-storage.yaml --capabilities CAPABILITY_IAM
+# Before the first deploy, store the Google OAuth client in Secrets Manager as "decksite/google-oauth"
+# with the keys client_id and client_secret. Google's redirect URI:
+#   https://<DomainPrefix>.auth.us-east-1.amazoncognito.com/oauth2/idpresponse
+
+Parameters:
+  DomainPrefix:
+    Type: String
+    Default: zekzek-mtg
+    Description: Cognito sign-in address prefix (<prefix>.auth.<region>.amazoncognito.com)
+  AllowedEmails:
+    Type: String
+    Default: albert.bueche.iv@gmail.com
+    Description: Comma-separated Google accounts allowed to sign in
+  SiteUrls:
+    Type: CommaDelimitedList
+    Default: "https://mtg.zekzek.net/,http://localhost:4330/"
+    Description: Where sign-in may return to (the site, and the local dev server)
+  SiteOrigins:
+    Type: CommaDelimitedList
+    Default: "https://mtg.zekzek.net,http://localhost:4330"
+    Description: Origins allowed to read the bucket from the browser
+  GoogleSecretName:
+    Type: String
+    Default: decksite/google-oauth
+
+Resources:
+  # Runs before Cognito creates any account. Only Google sign-ins from allowed addresses get through;
+  # every other way of signing up is refused.
+  AllowListFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Description: Deck Shelf allow-list for new sign-ins
+      Runtime: python3.13
+      Handler: index.handler
+      Timeout: 5
+      Role: !GetAtt AllowListRole.Arn
+      Environment:
+        Variables:
+          ALLOWED_EMAILS: !Ref AllowedEmails
+      Code:
+        ZipFile: |
+          import os
+
+          def handler(event, context):
+              allowed = {e.strip().lower() for e in os.environ.get("ALLOWED_EMAILS", "").split(",") if e.strip()}
+              email = (event.get("request", {}).get("userAttributes", {}).get("email") or "").lower()
+              if event.get("triggerSource") != "PreSignUp_ExternalProvider":
+                  raise Exception("Sign-up is only available through Google.")
+              if email not in allowed:
+                  raise Exception("This Google account isn't on the Deck Shelf allow-list.")
+              return event
+
+  AllowListRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: { Service: lambda.amazonaws.com }
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+
+  AllowListPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt AllowListFunction.Arn
+      Action: lambda:InvokeFunction
+      Principal: cognito-idp.amazonaws.com
+      SourceArn: !GetAtt UserPool.Arn
+
+  UserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: decksite
+      UserPoolTier: LITE
+      AdminCreateUserConfig:
+        AllowAdminCreateUserOnly: false
+      UsernameAttributes: [email]
+      Schema:
+        - Name: email
+          Required: true
+          Mutable: true
+      LambdaConfig:
+        PreSignUp: !GetAtt AllowListFunction.Arn
+
+  UserPoolDomain:
+    Type: AWS::Cognito::UserPoolDomain
+    Properties:
+      Domain: !Ref DomainPrefix
+      UserPoolId: !Ref UserPool
+
+  GoogleProvider:
+    Type: AWS::Cognito::UserPoolIdentityProvider
+    Properties:
+      UserPoolId: !Ref UserPool
+      ProviderName: Google
+      ProviderType: Google
+      ProviderDetails:
+        client_id: !Sub "{{resolve:secretsmanager:${GoogleSecretName}:SecretString:client_id}}"
+        client_secret: !Sub "{{resolve:secretsmanager:${GoogleSecretName}:SecretString:client_secret}}"
+        authorize_scopes: openid email profile
+      AttributeMapping:
+        email: email
+        email_verified: email_verified
+        name: name
+
+  WebClient:
+    Type: AWS::Cognito::UserPoolClient
+    DependsOn: GoogleProvider
+    Properties:
+      ClientName: decksite-web
+      UserPoolId: !Ref UserPool
+      GenerateSecret: false
+      SupportedIdentityProviders: [Google]
+      AllowedOAuthFlowsUserPoolClient: true
+      AllowedOAuthFlows: [code]
+      AllowedOAuthScopes: [openid, email, profile]
+      CallbackURLs: !Ref SiteUrls
+      LogoutURLs: !Ref SiteUrls
+      PreventUserExistenceErrors: ENABLED
+      RefreshTokenValidity: 30
+      TokenValidityUnits: { RefreshToken: days }
+
+  # Turns a signed-in user into short-lived AWS credentials that can only read the bucket.
+  IdentityPool:
+    Type: AWS::Cognito::IdentityPool
+    Properties:
+      IdentityPoolName: decksite
+      AllowUnauthenticatedIdentities: false
+      CognitoIdentityProviders:
+        - ClientId: !Ref WebClient
+          ProviderName: !GetAtt UserPool.ProviderName
+
+  ReaderRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: { Federated: cognito-identity.amazonaws.com }
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                cognito-identity.amazonaws.com:aud: !Ref IdentityPool
+              ForAnyValue:StringLike:
+                cognito-identity.amazonaws.com:amr: authenticated
+      Policies:
+        - PolicyName: read-deck-data
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: s3:GetObject
+                Resource: !Sub "${DataBucket.Arn}/*"
+
+  IdentityPoolRoles:
+    Type: AWS::Cognito::IdentityPoolRoleAttachment
+    Properties:
+      IdentityPoolId: !Ref IdentityPool
+      Roles:
+        authenticated: !GetAtt ReaderRole.Arn
+
+  DataBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    Properties:
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault: { SSEAlgorithm: AES256 }
+      CorsConfiguration:
+        CorsRules:
+          - AllowedOrigins: !Ref SiteOrigins
+            AllowedMethods: [GET, HEAD]
+            AllowedHeaders: ["*"]
+            MaxAge: 3600
+
+Outputs:
+  Region:
+    Value: !Ref AWS::Region
+  UserPoolId:
+    Value: !Ref UserPool
+  UserPoolClientId:
+    Value: !Ref WebClient
+  IdentityPoolId:
+    Value: !Ref IdentityPool
+  SignInDomain:
+    Value: !Sub "${DomainPrefix}.auth.${AWS::Region}.amazoncognito.com"
+  GoogleRedirectUri:
+    Value: !Sub "https://${DomainPrefix}.auth.${AWS::Region}.amazoncognito.com/oauth2/idpresponse"
+  Bucket:
+    Value: !Ref DataBucket

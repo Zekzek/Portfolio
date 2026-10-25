@@ -3,6 +3,7 @@
   import { STATUS_LABEL, countLabel } from "../lib/labels";
   import { href } from "../lib/route";
   import { ApiError, editDeck, revertDeck } from "../lib/api";
+  import { HOSTED } from "../lib/hosted";
   import type { Cards, Deck, DeckArt, EditOp } from "../lib/types";
   import AddCard from "./AddCard.svelte";
   import CardDialog from "./CardDialog.svelte";
@@ -189,7 +190,7 @@
               {#each decks.filter((d) => d.id !== deck.id && d.status !== "no_list") as d (d.id)}<option value={d.id}>{d.name}</option>{/each}
             </select>
           </label>
-          <button class="btn" class:on={editing} onclick={() => { editing = !editing; message = null; }} aria-pressed={editing}>{editing ? "Done editing" : "Edit list"}</button>
+          {#if HOSTED}<p class="readonly-note">Editing works on your PC's Deck Shelf; this site updates when you upload.</p>{:else}<button class="btn" class:on={editing} onclick={() => { editing = !editing; message = null; }} aria-pressed={editing}>{editing ? "Done editing" : "Edit list"}</button>{/if}
           {#if deck.status !== "pool"}<button class="btn" onclick={() => (showHand = !showHand)} aria-pressed={showHand}>{showHand ? "Hide sample hand" : "Sample hand"}</button>{/if}
           {#if deck.list}<button class="btn" onclick={copyList}>{copied ? "Copied" : "Copy for TappedOut"}</button>{/if}
         </div>
@@ -271,7 +272,7 @@
 
 {#if openCard}
   <CardDialog name={openCard} card={cards[openCard]} {deck} {decks} {art} closeHref={href({ view: "deck", deck: deck.id })} {onArtChanged}
-    onEdit={(ops) => edit(ops)} />
+    onEdit={HOSTED ? undefined : (ops) => edit(ops)} />
 {/if}
 
 <style>
@@ -348,6 +349,7 @@
   .grid-area { display: flex; flex-direction: column; gap: var(--space-6); min-width: 0; }
   .group-head { font-family: var(--font-display); font-size: var(--step-1); font-weight: 600; display: flex; align-items: baseline; gap: var(--space-2); padding-bottom: var(--space-2); border-bottom: 1px solid var(--line); margin-bottom: var(--space-3); }
   .extra .grid { opacity: 0.85; }
+  .readonly-note { font-size: var(--step--2); color: var(--faint); }
   .btn.on { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); font-weight: 700; }
   .editor { border: 1px solid var(--accent); border-radius: var(--radius-m); background: var(--surface); padding: var(--space-4); display: flex; flex-direction: column; gap: var(--space-3); }
   .editor-row { display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: end; }
