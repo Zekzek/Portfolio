@@ -18,7 +18,7 @@ const cards: Cards = {
 
 const deck: Deck = {
   id: "t", name: "Test", colors: "BG", status: "complete", note: null, parent: null, doc: null, deckgen: null,
-  commanderNames: ["Zask"], commanders: [{ name: "Zask", count: 1 }], unknown: [], proxyOnly: [], drift: null,
+  commanderNames: ["Zask"], commanders: [{ name: "Zask", count: 1 }], unknown: [], proxyOnly: [], drift: null, target: 99, version: 1, updated: "2026-01-01T00:00:00",
   count: 22,
   categories: [
     { name: "Ramp", cards: [{ name: "Sol Ring", count: 1 }] },

@@ -9,6 +9,7 @@ export interface Group {
   label: string;
   entries: DeckEntry[];
   count: number; // copies, e.g. 13x Forest counts 13
+  excluded?: boolean;
 }
 
 // A card goes in the first type it has, in this order (Artifact Creature -> Creature).
@@ -54,15 +55,17 @@ export function sortEntries(entries: DeckEntry[], cards: Cards, by: SortBy): Dec
   });
 }
 
-/** Every main-deck entry (commanders are shown separately). */
+/** Every main-deck entry (commanders are shown separately; reference-only sections are left out). */
 export function mainEntries(deck: Deck): DeckEntry[] {
-  return deck.categories.flatMap((c) => c.cards);
+  return deck.categories.filter((c) => !c.excluded).flatMap((c) => c.cards);
 }
 
 export function groupDeck(deck: Deck, cards: Cards, by: GroupBy, sort: SortBy): Group[] {
   let groups: Group[];
   if (by === "category") {
-    groups = deck.categories.map((c) => ({ key: c.name, label: c.name, entries: c.cards, count: 0 }));
+    groups = deck.categories.map((c) => ({
+      key: c.name, label: c.excluded ? `${c.name} · reference only` : c.name, entries: c.cards, count: 0, excluded: !!c.excluded,
+    }));
   } else {
     const keyOf = (e: DeckEntry): string => {
       const card = cards[e.name];

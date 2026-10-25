@@ -13,7 +13,13 @@ packages/ui/       shared look for zekzek.net sites: color/type tokens, fonts, b
 ### Deck Shelf (sites/mtg)
 
 Svelte inside Astro. Its data and actions come from `MTG/DeckSite/server.py` (in the OneDrive MTG folder),
-which reads the deck lists, the merged card data and DeckGen's folders. Deck data never goes in this repo.
+which reads the deck store (`DeckSite/decks/*.json`), the merged card data and DeckGen's folders. Deck data
+never goes in this repo.
+
+The deck store is the source of truth for deck lists. The page's "Edit list" mode and the command-line tool
+`DeckSite/deck.py` (used in Claude conversations) both change it through `DeckSite/deckstore.py`, which
+checks versions (a stale page can't overwrite newer changes), keeps a history with undo, and regenerates
+each deck's `.txt` and the generated blocks in its `.md` notes.
 
 ```
 npm run build:mtg                       # build the page once

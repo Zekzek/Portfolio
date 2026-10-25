@@ -6,7 +6,7 @@
   } = $props();
 </script>
 
-<a class="tile" {href} title={entry.name}>
+<a class="tile" {href} title={entry.note ? `${entry.name}: ${entry.note}` : entry.name}>
   {#if image}
     <img src={image} alt={entry.name} loading="lazy" decoding="async" class:proxy />
   {:else}
@@ -16,6 +16,7 @@
     </span>
   {/if}
   {#if entry.count > 1}<span class="count mono">×{entry.count}</span>{/if}
+  {#if entry.note}<span class="note-mark" aria-label={`Note: ${entry.note}`}>✎</span>{/if}
 </a>
 
 <style>
@@ -33,6 +34,11 @@
   .missing { position: absolute; inset: 0; padding: var(--space-3); display: flex; flex-direction: column; gap: var(--space-1); border: 1px dashed var(--line); border-radius: inherit; color: var(--fg); }
   .missing-name { font-weight: 700; font-size: var(--step--1); }
   .missing-type { font-size: var(--step--2); color: var(--muted); }
+  .note-mark {
+    position: absolute; left: 6%; bottom: 4%;
+    background: var(--accent); color: var(--on-accent);
+    font-size: var(--step--1); line-height: 1; padding: 0.2rem 0.3rem; border-radius: var(--radius-s);
+  }
   .count {
     position: absolute; right: 6%; bottom: 4%;
     background: color-mix(in srgb, var(--bg) 82%, transparent); color: var(--fg);

@@ -4,11 +4,14 @@ export interface DeckEntry {
   name: string;
   count: number;
   set?: string;
+  note?: string;
 }
 
 export interface Category {
   name: string;
   cards: DeckEntry[];
+  excluded?: boolean; // reference only: not counted, not exported
+  refs?: DeckEntry[]; // cards that live in another category, listed here too
 }
 
 export type DeckStatus = "complete" | "in_progress" | "pool" | "no_list";
@@ -27,6 +30,9 @@ export interface Deck {
   commanders: DeckEntry[];
   categories: Category[];
   count: number; // cards without commanders
+  target: number; // 100 minus commanders
+  version: number; // bumps on every change (page or deck.py)
+  updated: string;
   unknown: string[];
   proxyOnly: string[]; // in the DeckGen manifest but not in this list
   drift: { onlyInDoc: string[]; onlyInList: string[] } | null; // .md Deck List vs .txt; null = nothing to compare
@@ -84,3 +90,19 @@ export interface DeckArt {
 
 export type Cards = Record<string, Card>;
 export type Art = Record<string, DeckArt>;
+
+export interface HistoryEntry {
+  version: number;
+  at: string;
+  by: string; // "page", "claude", ...
+  why: string;
+  summary: string[];
+}
+
+export type EditOp =
+  | { op: "add"; card: string; category: string; count?: number; note?: string }
+  | { op: "remove"; card: string }
+  | { op: "set_count"; card: string; count: number }
+  | { op: "move"; card: string; category: string }
+  | { op: "set_note"; card: string; note: string }
+  | { op: "set_deck"; field: "status" | "note" | "name"; value: string };

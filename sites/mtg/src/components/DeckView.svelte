@@ -2,8 +2,12 @@
   import { groupDeck, manaCurve, pipCounts, typeCounts, type GroupBy, type SortBy } from "../lib/deck";
   import { STATUS_LABEL, countLabel } from "../lib/labels";
   import { href } from "../lib/route";
-  import type { Cards, Deck, DeckArt } from "../lib/types";
+  import { ApiError, editDeck, revertDeck } from "../lib/api";
+  import type { Cards, Deck, DeckArt, EditOp } from "../lib/types";
+  import AddCard from "./AddCard.svelte";
   import CardDialog from "./CardDialog.svelte";
+  import EditControls from "./EditControls.svelte";
+  import HistoryPanel from "./HistoryPanel.svelte";
   import CardTile from "./CardTile.svelte";
   import Mana from "./Mana.svelte";
   import ProxyPanel from "./ProxyPanel.svelte";
@@ -24,7 +28,53 @@
   let imageMode = $state(saved("deck.images", "scryfall") as "scryfall" | "proxy");
   $effect(() => { remember("deck.groupBy", groupBy); remember("deck.sortBy", sortBy); remember("deck.images", imageMode); });
 
-  const groups = $derived(groupDeck(deck, cards, groupBy, sortBy));
+  // Editing: every change goes to the deck store with the version this page shows.
+  let editing = $state(false);
+  let busy = $state(false);
+  let why = $state("");
+  let message = $state<{ ok: boolean; text: string } | null>(null);
+  const categoryNames = $derived(deck.categories.map((c) => c.name));
+
+  async function edit(ops: EditOp[], label?: string): Promise<boolean> {
+    busy = true;
+    message = null;
+    try {
+      const r = await editDeck(deck.id, deck.version, ops, why.trim());
+      await onDataChanged();
+      message = { ok: true, text: `${label ?? r.done.join("; ")} (version ${r.version})` };
+      why = ""; // a reason belongs to one change
+      return true;
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 409) {
+        const by = e.data.lastBy ? ` by ${e.data.lastBy}${e.data.lastWhy ? `: “${e.data.lastWhy}”` : ""}` : "";
+        message = { ok: false, text: `This deck changed somewhere else (now version ${e.data.version}${by}). It has been reloaded: check it and redo your change.` };
+        await onDataChanged();
+      } else {
+        message = { ok: false, text: (e as Error).message };
+      }
+      return false;
+    } finally {
+      busy = false;
+    }
+  }
+
+  async function undoTo(version: number) {
+    busy = true;
+    message = null;
+    try {
+      const r = await revertDeck(deck.id, deck.version, version, why.trim() || "undo");
+      await onDataChanged();
+      message = { ok: true, text: `Back to how version ${version} looked (now version ${r.version})` };
+      why = "";
+    } catch (e) {
+      message = { ok: false, text: (e as Error).message };
+      if (e instanceof ApiError && e.status === 409) await onDataChanged();
+    } finally {
+      busy = false;
+    }
+  }
+
+  const groups = $derived(groupDeck(deck, cards, editing ? "category" : groupBy, sortBy));
   const curve = $derived(manaCurve(deck, cards));
   const types = $derived(typeCounts(deck, cards));
   const pips = $derived(pipCounts(deck, cards));
@@ -48,7 +98,7 @@
   async function copyList() {
     if (!deck.list) return;
     const lines = [...deck.commanders.map((c) => `${c.count}x ${c.name} *CMDR*`),
-      ...deck.categories.flatMap((g) => [`# ${g.name.replace(/\s+/g, "")}`, ...g.cards.map((e) => `${e.count}x ${e.name}`)])];
+      ...deck.categories.filter((g) => !g.excluded).flatMap((g) => [`# ${g.name.replace(/[^A-Za-z0-9]+/g, "")}`, ...g.cards.map((e) => `${e.count}x ${e.name}`)])];
     try { await navigator.clipboard.writeText(lines.join("\n")); copied = true; setTimeout(() => (copied = false), 1800); } catch {}
   }
 </script>
@@ -74,7 +124,7 @@
           {#if forks.length}<span class="forks">Forks: {#each forks as f, i (f.id)}{i ? ", " : ""}<a href={href({ view: "deck", deck: f.id })}>{f.name}</a>{/each}</span>{/if}
         </div>
         {#if deck.note}<p class="note">{deck.note}</p>{/if}
-        {#if deck.doc}<p class="doc mono">Notes: {deck.doc}</p>{/if}
+        <p class="doc mono">Version {deck.version} · updated {new Date(deck.updated).toLocaleString()}{#if deck.doc} · notes: {deck.doc}{/if}</p>
       </div>
     </div>
   </header>
@@ -82,8 +132,8 @@
   {#if driftCount}
     <details class="drift">
       <summary>
-        <strong>The list and the notes disagree on {driftCount} {driftCount === 1 ? "card" : "cards"}.</strong>
-        This page shows <span class="mono">{deck.list}</span>.
+        <strong>The Deck List in the notes was edited by hand and differs on {driftCount} {driftCount === 1 ? "card" : "cards"}.</strong>
+        This page shows the deck store.
       </summary>
       <div class="drift-body">
         <div>
@@ -94,8 +144,8 @@
           <h3 class="eyebrow">Only in the list ({deck.drift!.onlyInList.length})</h3>
           <p>{deck.drift!.onlyInList.join(", ") || "None"}</p>
         </div>
-        <p class="drift-hint">If the notes are right, rebuild the list from them (this replaces the .txt):
-          <code>python DeckSite/tools/md_to_txt.py {deck.doc} {deck.list}</code></p>
+        <p class="drift-hint">Make those changes here (or with <span class="mono">deck.py</span>), then rewrite the list in the notes from the store:
+          <code>python DeckSite/deck.py export {deck.id}</code></p>
       </div>
     </details>
   {/if}
@@ -103,7 +153,7 @@
   {#if deck.status === "no_list"}
     <section class="empty">
       <h2>No list yet</h2>
-      <p>This deck only exists as notes in <span class="mono">{deck.doc}</span>. Write a <span class="mono">.txt</span> list next to it and add it to <span class="mono">DeckSite/decks.yaml</span> to see it here.</p>
+      <p>This deck only exists as notes in <span class="mono">{deck.doc}</span>. Add a deck file for it in <span class="mono">DeckSite/decks/</span> to see it here.</p>
     </section>
   {:else}
     <div class="layout">
@@ -111,7 +161,7 @@
         <div class="controls" role="group" aria-label="View options">
           <label>
             <span class="eyebrow">Group by</span>
-            <select bind:value={groupBy} id="group-by">
+            <select bind:value={groupBy} id="group-by" disabled={editing} title={editing ? "Editing groups by your categories" : undefined}>
               <option value="category">My categories</option>
               <option value="type">Card type</option>
               <option value="cmc">Mana value</option>
@@ -139,14 +189,44 @@
               {#each decks.filter((d) => d.id !== deck.id && d.status !== "no_list") as d (d.id)}<option value={d.id}>{d.name}</option>{/each}
             </select>
           </label>
+          <button class="btn" class:on={editing} onclick={() => { editing = !editing; message = null; }} aria-pressed={editing}>{editing ? "Done editing" : "Edit list"}</button>
           {#if deck.status !== "pool"}<button class="btn" onclick={() => (showHand = !showHand)} aria-pressed={showHand}>{showHand ? "Hide sample hand" : "Sample hand"}</button>{/if}
           {#if deck.list}<button class="btn" onclick={copyList}>{copied ? "Copied" : "Copy for TappedOut"}</button>{/if}
         </div>
         <Stats {curve} {types} {pips} />
+        <HistoryPanel deckId={deck.id} version={deck.version} {busy} onUndo={undoTo} />
         <ProxyPanel {deck} {art} {onDataChanged} />
       </aside>
 
       <main class="grid-area">
+        {#if editing}
+          <section class="editor" aria-label="Edit this deck">
+            <AddCard categories={categoryNames} {busy}
+              onAdd={(name, category, count) => edit([{ op: "add", card: name, category, count }])} />
+            <div class="editor-row">
+              <label class="field">
+                <span class="eyebrow">Status</span>
+                <select id="deck-status" value={deck.status} disabled={busy}
+                  onchange={(e) => edit([{ op: "set_deck", field: "status", value: e.currentTarget.value }])}>
+                  <option value="complete">Complete</option>
+                  <option value="in_progress">In progress</option>
+                  <option value="pool">Candidate pool</option>
+                </select>
+              </label>
+              <label class="field grow">
+                <span class="eyebrow">Deck note</span>
+                <input id="deck-note" type="text" value={deck.note ?? ""} disabled={busy} placeholder="e.g. 96/99, 3 open slots"
+                  onchange={(e) => edit([{ op: "set_deck", field: "note", value: e.currentTarget.value }])} />
+              </label>
+              <label class="field grow">
+                <span class="eyebrow">Reason for your next change (saved in the history)</span>
+                <input id="edit-why" type="text" bind:value={why} placeholder="Optional, e.g. cutting for the graveyard plan" />
+              </label>
+            </div>
+            <p class="editor-hint">Changes save right away and update the .txt and the Deck List in the notes. Undo is under Changes.</p>
+          </section>
+        {/if}
+        {#if message}<p class="msg" class:err={!message.ok} role="status">{message.text}</p>{/if}
         {#if showHand}
           <SampleHand {deck} {cards} {imageFor} {cardHref} onClose={() => (showHand = false)} />
         {/if}
@@ -165,7 +245,10 @@
             <h2 class="group-head"><span>{g.label}</span> <span class="mono dim">{g.count}</span></h2>
             <ul class="grid" role="list">
               {#each g.entries as e (e.name)}
-                <li><CardTile entry={e} card={cards[e.name]} image={imageFor(e.name)} proxy={isProxy(e.name)} href={cardHref(e.name)} /></li>
+                <li>
+                  <CardTile entry={e} card={cards[e.name]} image={imageFor(e.name)} proxy={isProxy(e.name)} href={cardHref(e.name)} />
+                  {#if editing}<EditControls entry={e} category={g.key} categories={categoryNames} {busy} onEdit={(ops) => edit(ops)} />{/if}
+                </li>
               {/each}
             </ul>
           </section>
@@ -187,7 +270,8 @@
 </div>
 
 {#if openCard}
-  <CardDialog name={openCard} card={cards[openCard]} {deck} {decks} {art} closeHref={href({ view: "deck", deck: deck.id })} {onArtChanged} />
+  <CardDialog name={openCard} card={cards[openCard]} {deck} {decks} {art} closeHref={href({ view: "deck", deck: deck.id })} {onArtChanged}
+    onEdit={(ops) => edit(ops)} />
 {/if}
 
 <style>
@@ -264,6 +348,15 @@
   .grid-area { display: flex; flex-direction: column; gap: var(--space-6); min-width: 0; }
   .group-head { font-family: var(--font-display); font-size: var(--step-1); font-weight: 600; display: flex; align-items: baseline; gap: var(--space-2); padding-bottom: var(--space-2); border-bottom: 1px solid var(--line); margin-bottom: var(--space-3); }
   .extra .grid { opacity: 0.85; }
+  .btn.on { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); font-weight: 700; }
+  .editor { border: 1px solid var(--accent); border-radius: var(--radius-m); background: var(--surface); padding: var(--space-4); display: flex; flex-direction: column; gap: var(--space-3); }
+  .editor-row { display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: end; }
+  .editor .field { display: flex; flex-direction: column; gap: var(--space-1); min-width: 0; }
+  .editor .grow { flex: 1 1 14rem; }
+  .editor input, .editor select { font: inherit; font-size: var(--step--1); color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: var(--radius-m); padding: 0.4rem 0.55rem; }
+  .editor-hint { font-size: var(--step--2); color: var(--faint); }
+  .msg { font-size: var(--step--1); color: var(--good); }
+  .msg.err { color: var(--warn); }
   .dim-text { color: var(--faint); font-size: var(--step--1); margin: calc(-1 * var(--space-1)) 0 var(--space-3); }
   .grid { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 9.75rem), 1fr)); gap: var(--space-3); }
 

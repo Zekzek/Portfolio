@@ -13,7 +13,7 @@ const cards: Cards = {
 
 const deck = (id: string, names: string[], cmdr = "Zask"): Deck => ({
   id, name: id, colors: null, status: "complete", note: null, parent: null, doc: null, deckgen: null,
-  commanderNames: [cmdr], commanders: [{ name: cmdr, count: 1 }], unknown: [], proxyOnly: [], drift: null, count: names.length,
+  commanderNames: [cmdr], commanders: [{ name: cmdr, count: 1 }], unknown: [], proxyOnly: [], drift: null, target: 99, version: 1, updated: "2026-01-01T00:00:00", count: names.length,
   categories: [{ name: "All", cards: names.map((name) => ({ name, count: 1 })) }],
 });
 const decks = [deck("zask", ["Scute Swarm", "Nameless Inversion", "Evolving Wilds"]), deck("forest", ["Scute Swarm"]), deck("sliver", ["Muscle Sliver"], "Muscle Sliver")];

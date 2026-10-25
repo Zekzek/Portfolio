@@ -1,13 +1,14 @@
 <script lang="ts">
   import { decksWith } from "../lib/deck";
   import { href } from "../lib/route";
-  import type { Card, Deck, DeckArt } from "../lib/types";
+  import type { Card, Deck, DeckArt, EditOp } from "../lib/types";
   import Mana from "./Mana.svelte";
   import OracleText from "./OracleText.svelte";
   import ProxyArt from "./ProxyArt.svelte";
 
-  let { name, card, deck, decks, art, closeHref, onArtChanged }: {
+  let { name, card, deck, decks, art, closeHref, onArtChanged, onEdit }: {
     name: string; card?: Card; deck: Deck; decks: Deck[]; art?: DeckArt; closeHref: string; onArtChanged: () => Promise<void>;
+    onEdit?: (ops: EditOp[]) => Promise<boolean>;
   } = $props();
 
   let dialog: HTMLDialogElement;
@@ -26,6 +27,18 @@
   const image = $derived(faces ? faces[face]?.image : card?.image);
   const usedIn = $derived(decksWith(name, decks));
   const cardArt = $derived(art?.cards[name]);
+  // This card's entry in the deck (for its note), if the deck has it.
+  const entry = $derived(deck.commanders.find((c) => c.name === name) ?? deck.categories.flatMap((c) => c.cards).find((c) => c.name === name));
+  const inCategory = $derived(deck.categories.find((c) => c.cards.some((e) => e.name === name))?.name);
+  let noteText = $state("");
+  $effect(() => { noteText = entry?.note ?? ""; });
+  let savingNote = $state(false);
+  async function saveNote() {
+    if (!onEdit) return;
+    savingNote = true;
+    await onEdit([{ op: "set_note", card: name, note: noteText.trim() }]);
+    savingNote = false;
+  }
 </script>
 
 <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
@@ -49,6 +62,20 @@
         </div>
         {#if card}
           <p class="type">{card.type_line}</p>
+          {#if entry}
+            <div class="deck-note">
+              <p class="eyebrow">In {deck.name}{inCategory ? ` · ${inCategory}` : " · commander"}{entry.count > 1 ? ` · ${entry.count} copies` : ""}</p>
+              {#if onEdit}
+                <form class="note-form" onsubmit={(e) => { e.preventDefault(); saveNote(); }}>
+                  <label class="visually-hidden" for="card-note">Note on this card</label>
+                  <input id="card-note" type="text" bind:value={noteText} placeholder="Add a note, e.g. cut candidate" />
+                  <button class="btn" disabled={savingNote || noteText.trim() === (entry.note ?? "")}>Save note</button>
+                </form>
+              {:else if entry.note}
+                <p class="note-text">{entry.note}</p>
+              {/if}
+            </div>
+          {/if}
           {#if card.oracle_text}<OracleText text={card.oracle_text} />{/if}
           {#if card.power != null}<p class="pt mono">{card.power}/{card.toughness}</p>{/if}
           {#if card.loyalty != null}<p class="pt mono">Loyalty {card.loyalty}</p>{/if}
@@ -110,6 +137,10 @@
   .decks a { display: inline-block; font-size: var(--step--1); padding: 0.2rem 0.55rem; border: 1px solid var(--line); border-radius: 99px; text-decoration: none; color: var(--fg); }
   .decks a:hover { border-color: var(--accent); }
   .decks a.current { border-color: var(--accent); color: var(--accent); }
+  .deck-note { display: flex; flex-direction: column; gap: var(--space-1); padding: var(--space-2) var(--space-3); border-left: 2px solid var(--accent); background: var(--surface); border-radius: 0 var(--radius-s) var(--radius-s) 0; }
+  .note-form { display: flex; gap: var(--space-2); }
+  .note-form input { flex: 1; min-width: 0; font: inherit; font-size: var(--step--1); color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: var(--radius-m); padding: 0.35rem 0.55rem; }
+  .note-text { color: var(--muted); font-style: italic; }
   .no-proxy { color: var(--faint); font-size: var(--step--1); border-top: 1px solid var(--line); padding-top: var(--space-4); }
   .btn { font: inherit; font-size: var(--step--1); padding: 0.4rem 0.7rem; border-radius: var(--radius-m); border: 1px solid var(--line); background: var(--surface); color: var(--fg); cursor: pointer; }
 

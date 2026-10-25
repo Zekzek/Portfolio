@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { loadArt, loadCards, loadDecks } from "../lib/api";
+  import { loadArt, loadCards, loadDecks, loadVersions } from "../lib/api";
   import { parseRoute, type Route } from "../lib/route";
   import type { Art, Cards, Deck } from "../lib/types";
   import CompareView from "./CompareView.svelte";
@@ -35,6 +35,34 @@
 
   load();
 
+  // Decks can change outside this tab (deck.py in a Claude conversation, another tab). Check when the
+  // tab comes back into view and every 30 seconds while it's visible; reload if any version moved.
+  let notice = $state<string | null>(null);
+  async function checkForChanges() {
+    if (!decks || document.hidden) return;
+    try {
+      const versions = await loadVersions();
+      const changed = decks.filter((d) => versions[d.id] !== undefined && versions[d.id] !== d.version);
+      const added = Object.keys(versions).filter((id) => !decks!.some((d) => d.id === id));
+      if (changed.length || added.length) {
+        await load();
+        const names = [...changed.map((d) => `${d.name} (now version ${versions[d.id]})`), ...added];
+        notice = `Updated from outside this page: ${names.join(", ")}`;
+        setTimeout(() => (notice = null), 8000);
+      }
+    } catch {}
+  }
+  $effect(() => {
+    const timer = setInterval(checkForChanges, 30000);
+    addEventListener("focus", checkForChanges);
+    document.addEventListener("visibilitychange", checkForChanges);
+    return () => {
+      clearInterval(timer);
+      removeEventListener("focus", checkForChanges);
+      document.removeEventListener("visibilitychange", checkForChanges);
+    };
+  });
+
   // A new page starts at the top; opening or closing a card keeps your place.
   const pageKey = $derived(
     route.view === "deck" ? `deck:${route.deck}`
@@ -51,6 +79,8 @@
 
   const deck = $derived(route.view === "deck" ? decks?.find((d) => d.id === route.deck) : undefined);
 </script>
+
+{#if notice}<p class="notice" role="status">{notice}</p>{/if}
 
 {#if error}
   <div class="state">
@@ -83,5 +113,12 @@
     gap: var(--space-3);
   }
   .hint { color: var(--muted); }
+  .notice {
+    position: fixed; z-index: 20; left: 50%; transform: translateX(-50%);
+    bottom: calc(var(--space-4) + env(safe-area-inset-bottom, 0px));
+    max-width: min(40rem, calc(100vw - 32px)); padding: var(--space-2) var(--space-4);
+    background: var(--surface); color: var(--fg); border: 1px solid var(--accent); border-radius: var(--radius-m);
+    box-shadow: 0 10px 30px -12px rgb(0 0 0 / 0.6); font-size: var(--step--1);
+  }
   code { font-family: var(--font-mono); font-size: 0.92em; background: var(--surface-2); padding: 0.1em 0.35em; border-radius: var(--radius-s); }
 </style>
