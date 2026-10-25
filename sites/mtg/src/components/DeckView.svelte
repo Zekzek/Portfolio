@@ -62,7 +62,10 @@
           {#if deck.colors}<Mana cost={cost(deck.colors)} size="1.15rem" />{/if}
           <span class="status status-{deck.status}">{STATUS_LABEL[deck.status]}</span>
           <span class="mono">{countLabel(deck)}</span>
-          {#if parent}<a href={href({ view: "deck", deck: parent.id })}>Fork of {parent.name}</a>{/if}
+          {#if parent}
+            <a href={href({ view: "deck", deck: parent.id })}>Fork of {parent.name}</a>
+            {#if parent.status !== "no_list"}<a href={href({ view: "compare", decks: [deck.id, parent.id] })}>Compare with {parent.name}</a>{/if}
+          {/if}
           {#if forks.length}<span class="forks">Forks: {#each forks as f, i (f.id)}{i ? ", " : ""}<a href={href({ view: "deck", deck: f.id })}>{f.name}</a>{/each}</span>{/if}
         </div>
         {#if deck.note}<p class="note">{deck.note}</p>{/if}
@@ -103,6 +106,13 @@
               <label><input type="radio" bind:group={imageMode} value="proxy" /> Proxies <span class="mono dim">{proxyCount}</span></label>
             </fieldset>
           {/if}
+          <label>
+            <span class="eyebrow">Compare with</span>
+            <select id="compare-with" onchange={(e) => { const v = e.currentTarget.value; if (v) location.hash = href({ view: "compare", decks: [deck.id, v] }); }}>
+              <option value="">Choose a deck…</option>
+              {#each decks.filter((d) => d.id !== deck.id && d.status !== "no_list") as d (d.id)}<option value={d.id}>{d.name}</option>{/each}
+            </select>
+          </label>
           {#if deck.list}<button class="btn" onclick={copyList}>{copied ? "Copied" : "Copy for TappedOut"}</button>{/if}
         </div>
         <Stats {curve} {types} {pips} />

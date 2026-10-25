@@ -12,7 +12,10 @@
     const ids = new Set(decks.map((d) => d.id));
     const roots = decks.filter((d) => !d.parent || !ids.has(d.parent));
     const childrenOf = (id: string): Deck[] => decks.filter((d) => d.parent === id).flatMap((d) => [d, ...childrenOf(d.id)]);
-    return roots.map((r) => ({ root: r, members: [r, ...childrenOf(r.id)] }));
+    return roots.map((r) => {
+      const members = [r, ...childrenOf(r.id)];
+      return { root: r, members, listed: members.filter((m) => m.status !== "no_list") };
+    });
   });
 
   const art = (d: Deck) => cards[d.commanderNames[0]]?.art_crop ?? null;
@@ -33,7 +36,12 @@
 
   {#each families as fam (fam.root.id)}
     <section class="family" aria-labelledby={`fam-${fam.root.id}`}>
-      <h2 id={`fam-${fam.root.id}`} class="eyebrow">{fam.members.length > 1 ? `${fam.root.name} and forks` : fam.root.name}</h2>
+      <div class="fam-head">
+        <h2 id={`fam-${fam.root.id}`} class="eyebrow">{fam.members.length > 1 ? `${fam.root.name} and forks` : fam.root.name}</h2>
+        {#if fam.listed.length > 1}
+          <a class="compare" href={href({ view: "compare", decks: fam.listed.map((m) => m.id) })}>Compare {fam.listed.length === 2 ? "both" : `all ${fam.listed.length}`} →</a>
+        {/if}
+      </div>
       <ul class="tiles" role="list">
         {#each fam.members as d (d.id)}
           <li>
@@ -76,6 +84,9 @@
   .sub { color: var(--muted); margin-top: var(--space-2); }
 
   .family { display: flex; flex-direction: column; gap: var(--space-3); }
+  .fam-head { display: flex; justify-content: space-between; align-items: baseline; gap: var(--space-3); flex-wrap: wrap; }
+  .compare { font-size: var(--step--1); text-decoration: none; }
+  .compare:hover { text-decoration: underline; }
   .tiles {
     list-style: none; padding: 0; margin: 0;
     display: grid;

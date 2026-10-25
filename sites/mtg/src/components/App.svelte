@@ -2,6 +2,7 @@
   import { loadArt, loadCards, loadDecks } from "../lib/api";
   import { parseRoute, type Route } from "../lib/route";
   import type { Art, Cards, Deck } from "../lib/types";
+  import CompareView from "./CompareView.svelte";
   import DeckList from "./DeckList.svelte";
   import DeckView from "./DeckView.svelte";
 
@@ -33,6 +34,18 @@
 
   load();
 
+  // A new page starts at the top; opening or closing a card keeps your place.
+  const pageKey = $derived(
+    route.view === "deck" ? `deck:${route.deck}` : route.view === "compare" ? `compare:${route.decks.join(",")}` : "decks",
+  );
+  let lastPage = "";
+  $effect(() => {
+    if (pageKey !== lastPage) {
+      if (lastPage) scrollTo({ top: 0 });
+      lastPage = pageKey;
+    }
+  });
+
   const deck = $derived(route.view === "deck" ? decks?.find((d) => d.id === route.deck) : undefined);
 </script>
 
@@ -49,6 +62,8 @@
   {#key deck.id}
     <DeckView {deck} {decks} {cards} art={art[deck.id]} openCard={route.view === "deck" ? route.card : undefined} onArtChanged={reloadArt} />
   {/key}
+{:else if route.view === "compare"}
+  <CompareView ids={route.decks} {decks} {cards} {art} openCard={route.card} onArtChanged={reloadArt} />
 {:else}
   <DeckList {decks} {cards} />
 {/if}

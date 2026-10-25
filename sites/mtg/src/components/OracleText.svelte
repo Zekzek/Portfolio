@@ -34,6 +34,6 @@
   .oracle { display: flex; flex-direction: column; gap: var(--space-2); }
   p { margin: 0; }
   p:empty { display: none; }
-  img { width: 1em; height: 1em; vertical-align: -0.12em; margin: 0 1px; }
+  img { display: inline-block; width: 1em; height: 1em; vertical-align: -0.12em; margin: 0 1px; }
   i { color: var(--muted); }
 </style>
