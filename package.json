@@ -1,0 +1,18 @@
+{
+  "name": "zekzek",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/*",
+    "sites/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w sites/portfolio",
+    "build": "npm run build -w sites/portfolio",
+    "preview": "npm run preview -w sites/portfolio",
+    "test": "npm test -w sites/portfolio"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  }
+}

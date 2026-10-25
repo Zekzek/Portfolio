@@ -1,0 +1,49 @@
+---
+import type { CollectionEntry } from "astro:content";
+import { render } from "astro:content";
+import Gallery from "./Gallery.astro";
+import Project from "./Project.astro";
+import { dateRange, humanizeMonths, roleMonths } from "../lib/durations";
+import { EXCLUDED_FROM_TOTALS } from "../data/skills";
+import type { OpenState } from "../lib/filter";
+
+interface Props {
+  role: CollectionEntry<"roles">;
+  projects: CollectionEntry<"projects">[];
+  open: OpenState;
+  now: Date;
+}
+const { role, projects, open, now } = Astro.props;
+const r = role.data;
+const { Content } = await render(role);
+const range = dateRange(r);
+const showDuration = !EXCLUDED_FROM_TOTALS.includes(r.key) && r.start;
+const heading = r.company ?? r.title;
+const subline = [r.role, r.note].filter(Boolean).join(" · ");
+---
+
+<details class="role" id={r.key} data-section={r.key} data-tags={r.tags.join(" ")} data-always={r.alwaysShow ? "" : undefined} open={open[r.key]}>
+  <summary>
+    <span class="chev" aria-hidden="true"></span>
+    <div class="role-head">
+      <h2>{heading}</h2>
+      {subline && <p class="role-title">{subline}</p>}
+    </div>
+    {range && (
+      <p class="when mono">
+        <span>{range}</span>
+        {showDuration && <span class="dur" data-duration-for={r.key}>{humanizeMonths(roleMonths(r, now))}</span>}
+      </p>
+    )}
+  </summary>
+  <div class="role-body">
+    {r.subtitle && <p class="eyebrow subtitle">{r.subtitle}</p>}
+    <div class="prose intro"><Content /></div>
+    <Gallery images={r.images} />
+    {projects.length > 0 && (
+      <div class="projects">
+        {projects.map((p) => <Project project={p} open={open[p.data.key]} />)}
+      </div>
+    )}
+  </div>
+</details>

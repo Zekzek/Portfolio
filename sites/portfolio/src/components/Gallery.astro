@@ -1,0 +1,56 @@
+---
+// A strip of screenshots. Click one to see it full size (lightbox in index.astro).
+import type { ImageMetadata } from "astro";
+import { Image, getImage } from "astro:assets";
+
+interface Props {
+  images: { src: ImageMetadata; alt: string }[];
+}
+const { images } = Astro.props;
+const full = await Promise.all(images.map((i) => getImage({ src: i.src, width: 1800, format: "webp" })));
+---
+
+{images.length > 0 && (
+  <ul class="gallery" role="list">
+    {images.map((img, i) => (
+      <li>
+        <button type="button" class="shot" data-full={full[i].src} data-alt={img.alt} aria-label={`View larger: ${img.alt}`}>
+          <Image src={img.src} alt={img.alt} width={480} format="webp" loading="lazy" />
+        </button>
+      </li>
+    ))}
+  </ul>
+)}
+
+<style>
+  .gallery {
+    list-style: none;
+    padding: 0;
+    margin: var(--space-4) 0 0;
+    display: flex;
+    gap: var(--space-3);
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+    padding-bottom: var(--space-2);
+    scrollbar-width: thin;
+  }
+  .gallery li { flex: 0 0 auto; scroll-snap-align: start; }
+  .shot {
+    display: block;
+    padding: 0;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-m);
+    overflow: hidden;
+    background: var(--surface-2);
+    cursor: zoom-in;
+  }
+  .shot :global(img) {
+    width: 13.5rem;
+    aspect-ratio: 16 / 10;
+    object-fit: cover;
+    transition: transform 180ms ease, opacity 180ms ease;
+    opacity: 0.92;
+  }
+  .shot:hover :global(img) { transform: scale(1.03); opacity: 1; }
+  @media print { .gallery { display: none; } }
+</style>

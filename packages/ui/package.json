@@ -1,0 +1,19 @@
+{
+  "name": "@zekzek/ui",
+  "private": true,
+  "type": "module",
+  "description": "Shared look for zekzek.net sites: color and type tokens, fonts, base layout.",
+  "exports": {
+    "./tokens.css": "./src/tokens.css",
+    "./BaseLayout.astro": "./src/BaseLayout.astro",
+    "./ThemeToggle.astro": "./src/ThemeToggle.astro"
+  },
+  "dependencies": {
+    "@fontsource-variable/bricolage-grotesque": "5.3.0",
+    "@fontsource-variable/jetbrains-mono": "5.3.0",
+    "@fontsource/atkinson-hyperlegible-next": "5.3.0"
+  },
+  "peerDependencies": {
+    "astro": ">=7"
+  }
+}

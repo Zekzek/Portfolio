@@ -1,0 +1,55 @@
+---
+import BaseLayout from "@zekzek/ui/BaseLayout.astro";
+import { getCollection } from "astro:content";
+import Role from "../components/Role.astro";
+import Sidebar from "../components/Sidebar.astro";
+import { SITE } from "../data/site";
+import { DEFAULT_FILTERS, EXCLUDED_FROM_TOTALS, SKILL_KEYS } from "../data/skills";
+import { skillTotals, totalMonths, type RoleTiming } from "../lib/durations";
+import { filterOpen, type Section } from "../lib/filter";
+import "../styles/portfolio.css";
+
+const roles = (await getCollection("roles")).sort((a, b) => a.data.order - b.data.order);
+const projects = await getCollection("projects");
+const projectsOf = (key: string) =>
+  projects.filter((p) => p.data.role === key).sort((a, b) => a.data.order - b.data.order);
+
+// Built with today's date; the page script refreshes these numbers on load.
+const now = new Date();
+const timings: RoleTiming[] = roles.map((r) => ({
+  key: r.data.key, start: r.data.start, end: r.data.end, tags: r.data.tags,
+  projects: projectsOf(r.data.key).map((p) => ({ months: p.data.months, tags: p.data.tags })),
+}));
+const totals = skillTotals(timings, SKILL_KEYS, EXCLUDED_FROM_TOTALS, now);
+const years = Math.floor(totalMonths(timings, EXCLUDED_FROM_TOTALS, now) / 12);
+
+// First paint shows the default filters, so there's no flash and it works without JavaScript.
+const sections: Section[] = roles.map((r) => ({
+  key: r.data.key, tags: r.data.tags, alwaysShow: r.data.alwaysShow,
+  children: projectsOf(r.data.key).map((p) => ({ key: p.data.key, tags: p.data.tags, alwaysShow: p.data.alwaysShow, children: [] })),
+}));
+const open = filterOpen(sections, DEFAULT_FILTERS);
+const [before, after] = SITE.summary.split("{years}");
+---
+
+<BaseLayout title={SITE.fullName} description={`${SITE.fullName}: ${SITE.title}. Searchable CV and public projects.`}>
+  <div class="page">
+    <Sidebar totals={totals} />
+    <main class="main">
+      <p class="summary">{before}<span data-years>{years}</span>{after}</p>
+      <div class="roles">
+        {roles.map((r) => <Role role={r} projects={projectsOf(r.data.key)} open={open} now={now} />)}
+      </div>
+    </main>
+  </div>
+
+  <dialog class="lightbox" data-lightbox aria-label="Screenshot">
+    <form method="dialog"><button class="lightbox-close" aria-label="Close">×</button></form>
+    <img alt="" />
+  </dialog>
+
+  <script type="application/json" id="timings" set:html={JSON.stringify(timings)} />
+  <script>
+    import "../scripts/portfolio";
+  </script>
+</BaseLayout>

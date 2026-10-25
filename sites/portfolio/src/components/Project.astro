@@ -1,0 +1,32 @@
+---
+import type { CollectionEntry } from "astro:content";
+import { render } from "astro:content";
+import Gallery from "./Gallery.astro";
+import { SKILL_LABEL } from "../data/skills";
+
+interface Props {
+  project: CollectionEntry<"projects">;
+  open: boolean;
+}
+const { project, open } = Astro.props;
+const p = project.data;
+const { Content } = await render(project);
+const shownTags = p.tags.filter((t) => SKILL_LABEL[t]);
+---
+
+<details class="project" id={p.key} data-section={p.key} data-tags={p.tags.join(" ")} data-always={p.alwaysShow ? "" : undefined} open={open}>
+  <summary>
+    <span class="chev" aria-hidden="true"></span>
+    <h3>{p.title}</h3>
+    {p.months && <span class="months mono" title={`About ${p.months} months`}>{p.months} mo</span>}
+  </summary>
+  <div class="project-body">
+    {shownTags.length > 0 && (
+      <ul class="tags mono" role="list" aria-label="Skills used">
+        {shownTags.map((t) => <li data-tag={t}>{SKILL_LABEL[t]}</li>)}
+      </ul>
+    )}
+    <div class="prose"><Content /></div>
+    <Gallery images={p.images} />
+  </div>
+</details>

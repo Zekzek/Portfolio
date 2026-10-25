@@ -1,0 +1,59 @@
+---
+import ThemeToggle from "@zekzek/ui/ThemeToggle.astro";
+import { SITE } from "../data/site";
+import { DEFAULT_FILTERS, SKILL_GROUPS } from "../data/skills";
+import { humanizeMonthsShort, sortSkills } from "../lib/durations";
+
+interface Props {
+  totals: Record<string, number>;
+}
+const { totals } = Astro.props;
+---
+
+<aside class="sidebar">
+  <header class="identity">
+    <div class="identity-top">
+      <h1>{SITE.name}</h1>
+      <ThemeToggle />
+    </div>
+    <p class="tagline">{SITE.title}</p>
+    <ul class="links" role="list">
+      {SITE.links.map((l) => <li><a href={l.href} target="_blank" rel="noopener">{l.label}</a></li>)}
+    </ul>
+  </header>
+
+  <div class="controls">
+    <button type="button" class="btn" data-action="show-all">Show all</button>
+    <button type="button" class="btn" data-action="collapse-all">Collapse all</button>
+    <button type="button" class="btn btn-quiet" data-action="print">Save as PDF</button>
+  </div>
+
+  <form class="filters" aria-labelledby="filters-heading" data-filters>
+    <div class="filters-head">
+      <h2 id="filters-heading" class="eyebrow">Filter by skill</h2>
+      <p class="mode" data-mode-text aria-live="polite">Showing work that uses the checked skills</p>
+    </div>
+    {SKILL_GROUPS.map((g) => (
+      <fieldset>
+        <legend class="eyebrow">{g.label}</legend>
+        <ul role="list" data-skill-group>
+          {sortSkills(g.skills, totals).map((s) => (
+            <li data-skill={s.key} data-label={s.label} data-rating={s.rating ?? 0}>
+              <label class="skill">
+                <input type="checkbox" name="skill" value={s.key} checked={DEFAULT_FILTERS.includes(s.key)} />
+                <span class="box" aria-hidden="true"></span>
+                <span class="name">{s.label}</span>
+                <span class="time mono" data-time-for={s.key} title="Time using this skill">{humanizeMonthsShort(totals[s.key])}</span>
+                {s.rating ? (
+                  <span class="meter" role="img" aria-label={`${s.rating} of 5`}>
+                    {[1, 2, 3, 4, 5].map((n) => <i class:list={{ on: n <= s.rating! }}></i>)}
+                  </span>
+                ) : <span class="meter" aria-hidden="true"></span>}
+              </label>
+            </li>
+          ))}
+        </ul>
+      </fieldset>
+    ))}
+  </form>
+</aside>
