@@ -1,7 +1,7 @@
 <script lang="ts">
   // Proxy art for one card: every DeckGen style, every attempt, pick one, queue a reroll for tonight.
   import { pickAttempt, queueReroll, unqueueReroll } from "../lib/api";
-  import { HOSTED } from "../lib/hosted";
+  import { editable } from "../lib/connection.svelte";
   import type { DeckArt, StyleArt } from "../lib/types";
 
   let { deckId, cardName, art, cardArt, onArtChanged }: {
@@ -56,7 +56,7 @@
       </div>
 
       <div class="attempts">
-        <p class="eyebrow">Attempts{#if !HOSTED} <span class="dim">· click one to use it</span>{/if}</p>
+        <p class="eyebrow">Attempts{#if editable()} <span class="dim">· click one to use it</span>{/if}</p>
         {#if current.attempts.length === 0}
           <p class="dim">No art in this style yet. The nightly run makes the first attempt.</p>
         {:else}
@@ -64,7 +64,7 @@
             {#each current.attempts as a (a.n)}
               {@const inUse = a.n === current.picked}
               <li>
-                <button class="attempt" class:in-use={inUse} disabled={HOSTED || busy || inUse}
+                <button class="attempt" class:in-use={inUse} disabled={!editable() || busy || inUse}
                   onclick={() => act(`Using attempt ${a.n}. The printed card was re-rendered.`, () => pickAttempt(target, a.n))}
                   aria-label={inUse ? `Attempt ${a.n}, in use` : `Use attempt ${a.n}`}>
                   <img src={a.url} alt="" loading="lazy" />
@@ -77,9 +77,9 @@
         {/if}
 
         <div class="reroll">
-          {#if HOSTED}
+          {#if !editable()}
             {#if current.queued !== null}<p class="queued">Queued for tonight{current.queued ? `: “${current.queued}”` : ""}.</p>{/if}
-            <p class="dim">Picking attempts and queuing rerolls work on your PC's Deck Shelf.</p>
+            <p class="dim">Connect to your PC (bottom left) to pick attempts or queue rerolls.</p>
           {:else if current.queued !== null}
             <p class="queued">Queued for tonight{current.queued ? `: “${current.queued}”` : ""}.</p>
             <button class="btn" disabled={busy} onclick={() => act("Removed from tonight's queue.", () => unqueueReroll(target))}>Cancel reroll</button>

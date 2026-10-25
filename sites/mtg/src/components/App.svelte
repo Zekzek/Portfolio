@@ -1,5 +1,7 @@
 <script lang="ts">
-  import { loadArt, loadCards, loadDecks, loadVersions } from "../lib/api";
+  import { loadArt, loadCards, loadDecks, loadSnapshotMeta, loadVersions } from "../lib/api";
+  import { conn, connect, disconnect, refreshStatus } from "../lib/connection.svelte";
+  import ConnectionBadge from "./ConnectionBadge.svelte";
   import { HOSTED, authState, type AuthState } from "../lib/hosted";
   import { parseRoute, type Route } from "../lib/route";
   import type { Art, Cards, Deck } from "../lib/types";
@@ -19,6 +21,7 @@
     try {
       [decks, cards, art] = await Promise.all([loadDecks(), loadCards(), loadArt()]);
       error = null;
+      if (conn.mode === "snapshot") loadSnapshotMeta().then((m) => (conn.snapshotAt = m.exportedAt)).catch(() => {});
     } catch (e) {
       error = (e as Error).message;
     }
@@ -39,7 +42,12 @@
   let auth = $state<AuthState | null>(HOSTED ? null : { signedIn: true, email: "" });
   if (HOSTED) {
     authState()
-      .then((a) => { auth = a; if (a.signedIn) load(); })
+      .then(async (a) => {
+        auth = a;
+        if (!a.signedIn) return;
+        await connect(true); // only if this browser connected to its PC before
+        await load();
+      })
       .catch((e) => { auth = { signedIn: false, error: (e as Error).message }; });
   } else {
     load();
@@ -57,6 +65,13 @@
   let notice = $state<string | null>(null);
   async function checkForChanges() {
     if (!decks || document.hidden) return;
+    if (conn.mode === "live" && !(await refreshStatus())) {
+      disconnect(false);
+      notice = "Lost the connection to this computer's Deck Shelf; showing the last upload.";
+      setTimeout(() => (notice = null), 8000);
+      await load();
+      return;
+    }
     try {
       const versions = await loadVersions();
       const changed = decks.filter((d) => versions[d.id] !== undefined && versions[d.id] !== d.version);
@@ -98,6 +113,7 @@
 </script>
 
 {#if notice}<p class="notice" role="status">{notice}</p>{/if}
+{#if HOSTED && auth?.signedIn}<ConnectionBadge onChanged={load} />{/if}
 
 {#if !auth}
   <div class="state"><p class="eyebrow">Checking sign-in…</p></div>

@@ -61,6 +61,15 @@ async function signInError(): Promise<string | undefined> {
   return text.replace(/^PreSignUp failed with error /, "").replace(/\.\s*$/, "") + ".";
 }
 
+/** The current Cognito ID token (refreshed by Amplify when needed), for this PC's server to verify. */
+export async function idToken(): Promise<string> {
+  await setup();
+  const { fetchAuthSession } = await import("aws-amplify/auth");
+  const token = (await fetchAuthSession()).tokens?.idToken?.toString();
+  if (!token) throw new Error("Not signed in");
+  return token;
+}
+
 export async function signIn(): Promise<void> {
   await setup();
   const { signInWithRedirect } = await import("aws-amplify/auth");

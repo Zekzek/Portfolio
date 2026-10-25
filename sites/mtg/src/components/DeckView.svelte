@@ -3,7 +3,7 @@
   import { STATUS_LABEL, countLabel } from "../lib/labels";
   import { href } from "../lib/route";
   import { ApiError, editDeck, revertDeck } from "../lib/api";
-  import { HOSTED } from "../lib/hosted";
+  import { editable } from "../lib/connection.svelte";
   import type { Cards, Deck, DeckArt, EditOp } from "../lib/types";
   import AddCard from "./AddCard.svelte";
   import CardDialog from "./CardDialog.svelte";
@@ -190,7 +190,7 @@
               {#each decks.filter((d) => d.id !== deck.id && d.status !== "no_list") as d (d.id)}<option value={d.id}>{d.name}</option>{/each}
             </select>
           </label>
-          {#if HOSTED}<p class="readonly-note">Editing works on your PC's Deck Shelf; this site updates when you upload.</p>{:else}<button class="btn" class:on={editing} onclick={() => { editing = !editing; message = null; }} aria-pressed={editing}>{editing ? "Done editing" : "Edit list"}</button>{/if}
+          {#if !editable()}<p class="readonly-note">Showing the last upload. Connect to your PC (bottom left) to edit.</p>{:else}<button class="btn" class:on={editing} onclick={() => { editing = !editing; message = null; }} aria-pressed={editing}>{editing ? "Done editing" : "Edit list"}</button>{/if}
           {#if deck.status !== "pool"}<button class="btn" onclick={() => (showHand = !showHand)} aria-pressed={showHand}>{showHand ? "Hide sample hand" : "Sample hand"}</button>{/if}
           {#if deck.list}<button class="btn" onclick={copyList}>{copied ? "Copied" : "Copy for TappedOut"}</button>{/if}
         </div>
@@ -272,7 +272,7 @@
 
 {#if openCard}
   <CardDialog name={openCard} card={cards[openCard]} {deck} {decks} {art} closeHref={href({ view: "deck", deck: deck.id })} {onArtChanged}
-    onEdit={HOSTED ? undefined : (ops) => edit(ops)} />
+    onEdit={!editable() ? undefined : (ops) => edit(ops)} />
 {/if}
 
 <style>

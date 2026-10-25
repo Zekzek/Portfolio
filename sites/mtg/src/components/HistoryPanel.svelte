@@ -1,7 +1,7 @@
 <script lang="ts">
   // A deck's recent changes (from the page or from deck.py), with undo.
   import { loadHistory } from "../lib/api";
-  import { HOSTED } from "../lib/hosted";
+  import { editable } from "../lib/connection.svelte";
   import type { HistoryEntry } from "../lib/types";
 
   let { deckId, version, busy, onUndo }: {
@@ -27,7 +27,7 @@
 <section class="history" aria-labelledby="history-h">
   <div class="head">
     <h2 id="history-h" class="eyebrow">Changes <span class="dim">· version {version}</span></h2>
-    {#if version > 1 && !HOSTED}
+    {#if version > 1 && editable()}
       <button class="link" disabled={busy} onclick={() => onUndo(version - 1)}>Undo last</button>
     {/if}
   </div>

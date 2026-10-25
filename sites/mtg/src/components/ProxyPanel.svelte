@@ -1,7 +1,7 @@
 <script lang="ts">
   // Proxy status for a deck (DeckGen), or a way to start one.
   import { startManifest } from "../lib/api";
-  import { HOSTED } from "../lib/hosted";
+  import { editable } from "../lib/connection.svelte";
   import { href } from "../lib/route";
   import type { Deck, DeckArt } from "../lib/types";
 
@@ -57,7 +57,7 @@
         {#each pdfs as s, i (s.id)}{i ? " · " : ""}<a href={s.printPdf} target="_blank" rel="noopener">{s.id} (PDF)</a>{/each}
       </p>
     {/if}
-  {:else if HOSTED}
+  {:else if !editable()}
     <p class="small">No proxy art for this deck yet.</p>
   {:else if deck.list}
     <p class="small">No DeckGen file for this deck yet. Starting one lists its cards (without basic lands) with a starter style to edit. Nothing is generated or spent until you run DeckGen with it.</p>

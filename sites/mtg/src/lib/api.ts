@@ -1,23 +1,39 @@
-// Loading data and calling the local server's actions (MTG/DeckSite/server.py).
-// Hosted (mtg.zekzek.net): the same files come from the private bucket, uploaded by DeckSite/export.py.
-import { HOSTED, getJson as hostedJson, signAll } from "./hosted";
+// Loading data and calling this PC's server (MTG/DeckSite/server.py).
+// Three sources (see connection.svelte.ts):
+//   local     the page is served by this PC's server: relative URLs
+//   live      the hosted page calls this PC's server directly (http://127.0.0.1:8765) with the sign-in token
+//   snapshot  the hosted page reads the last upload from the private bucket (read-only)
+import { LOCAL_SERVER, authHeaders, conn } from "./connection.svelte";
+import { getJson as bucketJson, signAll } from "./hosted";
 import type { Art, Cards, Deck, EditOp, HistoryEntry } from "./types";
 
-async function localJson<T>(url: string): Promise<T> {
-  const r = await fetch(url, { cache: "no-store" });
-  if (!r.ok) throw new Error(`${url}: ${r.status} ${(await r.text()).slice(0, 200)}`);
-  return r.json();
+/** "/art/...", "/img?u=..." from this PC's server, made absolute when the hosted page is talking to it. */
+const SERVER_LINK = /^\/(img\?|art\/|proxy\/|print\/)/;
+function absolutize<T>(data: T): T {
+  if (conn.mode !== "live") return data;
+  return JSON.parse(JSON.stringify(data), (_k, v) => (typeof v === "string" && SERVER_LINK.test(v) ? LOCAL_SERVER + v : v));
 }
 
-/** "/data/decks.json" locally; "data/decks.json" from the bucket when hosted. */
-const getJson = <T>(path: string): Promise<T> => (HOSTED ? hostedJson<T>(path.slice(1)) : localJson<T>(path));
+async function serverJson<T>(path: string): Promise<T> {
+  const base = conn.mode === "live" ? LOCAL_SERVER : "";
+  const r = await fetch(base + path, { cache: "no-store", headers: await authHeaders() });
+  if (!r.ok) throw new Error(`${path}: ${r.status} ${(await r.text()).slice(0, 200)}`);
+  return absolutize(await r.json());
+}
+
+/** "/data/decks.json" from this PC's server, or "data/decks.json" from the bucket in snapshot mode. */
+const getJson = <T>(path: string): Promise<T> =>
+  conn.mode === "snapshot" ? bucketJson<T>(path.slice(1)) : serverJson<T>(path);
 
 export const loadDecks = () => getJson<Deck[]>("/data/decks.json");
 export const loadCards = () => getJson<Cards>("/data/cards.json");
-/** Hosted art links point into the private bucket ("s3:..."), so they're signed after loading. */
-export const loadArt = async () => (HOSTED ? signAll(await getJson<Art>("/data/art.json")) : getJson<Art>("/data/art.json"));
+/** Snapshot art links point into the private bucket ("s3:..."), so they're signed after loading. */
+export const loadArt = async () =>
+  conn.mode === "snapshot" ? signAll(await getJson<Art>("/data/art.json")) : getJson<Art>("/data/art.json");
 export const loadVersions = () => getJson<Record<string, number>>("/data/versions.json");
 export const loadHistory = (deck: string) => getJson<HistoryEntry[]>(`/data/history/${encodeURIComponent(deck)}.json`);
+/** When the snapshot was uploaded (snapshot mode only). */
+export const loadSnapshotMeta = () => bucketJson<{ exportedAt: string }>("data/meta.json");
 
 /** Failed request; `status` 409 means the deck changed since the page loaded it. */
 export class ApiError extends Error {
@@ -27,9 +43,11 @@ export class ApiError extends Error {
 }
 
 async function post<T = { message?: string }>(action: string, body: Record<string, unknown>): Promise<T> {
-  const r = await fetch(`/api/${action}`, {
+  if (conn.mode === "snapshot") throw new ApiError("Connect to your PC to make changes", 0, {});
+  const base = conn.mode === "live" ? LOCAL_SERVER : "";
+  const r = await fetch(`${base}/api/${action}`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...(await authHeaders()) },
     body: JSON.stringify(body),
   });
   const data = await r.json().catch(() => ({ error: `${r.status} ${r.statusText}` }));
