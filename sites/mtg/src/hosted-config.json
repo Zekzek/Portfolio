@@ -1,8 +1,8 @@
 {
   "region": "us-east-1",
-  "userPoolId": "",
-  "userPoolClientId": "",
-  "identityPoolId": "",
-  "signInDomain": "",
-  "bucket": ""
+  "userPoolId": "us-east-1_9dUmWoJqV",
+  "userPoolClientId": "bi848inck7lqod5acavlr0g0q",
+  "identityPoolId": "us-east-1:dd002308-539a-4a71-997b-6b9f7d59a7d9",
+  "signInDomain": "zekzek-mtg.auth.us-east-1.amazoncognito.com",
+  "bucket": "decksite-databucket-yga0iyv5rnsg"
 }
