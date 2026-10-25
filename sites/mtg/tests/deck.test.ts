@@ -18,7 +18,7 @@ const cards: Cards = {
 
 const deck: Deck = {
   id: "t", name: "Test", colors: "BG", status: "complete", note: null, parent: null, doc: null, deckgen: null,
-  commanderNames: ["Zask"], commanders: [{ name: "Zask", count: 1 }], unknown: [], proxyOnly: [],
+  commanderNames: ["Zask"], commanders: [{ name: "Zask", count: 1 }], unknown: [], proxyOnly: [], drift: null,
   count: 22,
   categories: [
     { name: "Ramp", cards: [{ name: "Sol Ring", count: 1 }] },
@@ -88,5 +88,24 @@ describe("routes and labels", () => {
     expect(countLabel(deck)).toBe("22 + commander");
     expect(countLabel({ ...deck, status: "pool" })).toBe("22 candidates");
     expect(countLabel({ ...deck, commanders: [{ name: "A", count: 1 }, { name: "B", count: 1 }] })).toBe("22 + 2 commanders");
+  });
+});
+
+import { library, shuffle } from "../src/lib/hand";
+
+describe("sample hand", () => {
+  it("library expands copies and leaves out the commander", () => {
+    const lib = library(deck);
+    expect(lib.length).toBe(22);
+    expect(lib.filter((n) => n === "Forest").length).toBe(14);
+    expect(lib).not.toContain("Zask");
+  });
+  it("shuffle keeps every card", () => {
+    let seed = 7;
+    const rng = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+    const lib = library(deck);
+    const s = shuffle(lib, rng);
+    expect(s).not.toEqual(lib);
+    expect([...s].sort()).toEqual([...lib].sort());
   });
 });

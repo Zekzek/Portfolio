@@ -4,6 +4,7 @@
   import type { Art, Cards, Deck } from "../lib/types";
   import CompareView from "./CompareView.svelte";
   import DeckList from "./DeckList.svelte";
+  import SearchView from "./SearchView.svelte";
   import DeckView from "./DeckView.svelte";
 
   let decks = $state<Deck[] | null>(null);
@@ -36,7 +37,9 @@
 
   // A new page starts at the top; opening or closing a card keeps your place.
   const pageKey = $derived(
-    route.view === "deck" ? `deck:${route.deck}` : route.view === "compare" ? `compare:${route.decks.join(",")}` : "decks",
+    route.view === "deck" ? `deck:${route.deck}`
+    : route.view === "compare" ? `compare:${route.decks.join(",")}`
+    : route.view,
   );
   let lastPage = "";
   $effect(() => {
@@ -60,10 +63,12 @@
   <div class="state"><p class="eyebrow">Loading decks…</p></div>
 {:else if route.view === "deck" && deck}
   {#key deck.id}
-    <DeckView {deck} {decks} {cards} art={art[deck.id]} openCard={route.view === "deck" ? route.card : undefined} onArtChanged={reloadArt} />
+    <DeckView {deck} {decks} {cards} art={art[deck.id]} openCard={route.view === "deck" ? route.card : undefined} onArtChanged={reloadArt} onDataChanged={load} />
   {/key}
 {:else if route.view === "compare"}
   <CompareView ids={route.decks} {decks} {cards} {art} openCard={route.card} onArtChanged={reloadArt} />
+{:else if route.view === "search"}
+  <SearchView q={route.q} {decks} {cards} {art} openCard={route.card} onArtChanged={reloadArt} />
 {:else}
   <DeckList {decks} {cards} />
 {/if}

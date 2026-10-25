@@ -4,10 +4,13 @@
 //   #/deck/<id>/card/<name>             one deck with a card open
 //   #/compare/<id>,<id>[,...]           decks side by side
 //   #/compare/<id>,<id>/card/<name>     ...with a card open
+//   #/search/<query>                    search every deck
+//   #/search/<query>/card/<name>        ...with a card open
 export type Route =
   | { view: "decks" }
   | { view: "deck"; deck: string; card?: string }
-  | { view: "compare"; decks: string[]; card?: string };
+  | { view: "compare"; decks: string[]; card?: string }
+  | { view: "search"; q: string; card?: string };
 
 export function parseRoute(hash: string): Route {
   const parts = hash.replace(/^#\/?/, "").split("/").map(decodeURIComponent);
@@ -19,13 +22,18 @@ export function parseRoute(hash: string): Route {
     const decks = parts[1].split(",").filter(Boolean);
     return card ? { view: "compare", decks, card } : { view: "compare", decks };
   }
+  if (parts[0] === "search") {
+    const q = parts[1] ?? "";
+    return card ? { view: "search", q, card } : { view: "search", q };
+  }
   return { view: "decks" };
 }
 
 export function href(route: Route): string {
   if (route.view === "decks") return "#/";
-  const base = route.view === "deck"
-    ? `#/deck/${encodeURIComponent(route.deck)}`
-    : `#/compare/${route.decks.map(encodeURIComponent).join(",")}`;
+  const base =
+    route.view === "deck" ? `#/deck/${encodeURIComponent(route.deck)}`
+    : route.view === "compare" ? `#/compare/${route.decks.map(encodeURIComponent).join(",")}`
+    : `#/search/${encodeURIComponent(route.q)}`;
   return route.card ? `${base}/card/${encodeURIComponent(route.card)}` : base;
 }

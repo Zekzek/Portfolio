@@ -15,7 +15,7 @@ const cards: Cards = {
 
 const deck = (id: string, list: [string, number][]): Deck => ({
   id, name: id, colors: "BG", status: "complete", note: null, parent: null, doc: null, deckgen: null,
-  commanderNames: ["Zask"], commanders: [{ name: "Zask", count: 1 }], unknown: [], proxyOnly: [],
+  commanderNames: ["Zask"], commanders: [{ name: "Zask", count: 1 }], unknown: [], proxyOnly: [], drift: null,
   count: list.reduce((n, [, c]) => n + c, 0),
   categories: [{ name: "All", cards: list.map(([name, count]) => ({ name, count })) }],
 });

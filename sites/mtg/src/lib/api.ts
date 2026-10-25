@@ -31,3 +31,4 @@ export interface ArtTarget {
 export const pickAttempt = (t: ArtTarget, n: number) => post("pick", { ...t, n });
 export const queueReroll = (t: ArtTarget, note: string) => post("reroll", { ...t, note });
 export const unqueueReroll = (t: ArtTarget) => post("unqueue", t);
+export const startManifest = (deck: string) => post("deckgen/new", { deck });

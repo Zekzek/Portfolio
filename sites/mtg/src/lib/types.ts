@@ -29,6 +29,7 @@ export interface Deck {
   count: number; // cards without commanders
   unknown: string[];
   proxyOnly: string[]; // in the DeckGen manifest but not in this list
+  drift: { onlyInDoc: string[]; onlyInList: string[] } | null; // .md Deck List vs .txt; null = nothing to compare
 }
 
 export interface Face {
@@ -76,7 +77,7 @@ export interface DeckArt {
   manifest: string;
   deckgenName: string;
   activeStyle: string;
-  styles: { id: string; frame: string; prompt: string }[];
+  styles: { id: string; frame: string; prompt: string; printPdf: string | null }[];
   cards: Record<string, Record<string, StyleArt>>;
   nightlyCap: number | null;
 }

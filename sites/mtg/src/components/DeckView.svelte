@@ -6,11 +6,14 @@
   import CardDialog from "./CardDialog.svelte";
   import CardTile from "./CardTile.svelte";
   import Mana from "./Mana.svelte";
+  import ProxyPanel from "./ProxyPanel.svelte";
+  import SampleHand from "./SampleHand.svelte";
   import Stats from "./Stats.svelte";
   import ThemeToggleButton from "./ThemeToggleButton.svelte";
 
-  let { deck, decks, cards, art, openCard, onArtChanged }: {
-    deck: Deck; decks: Deck[]; cards: Cards; art?: DeckArt; openCard?: string; onArtChanged: () => Promise<void>;
+  let { deck, decks, cards, art, openCard, onArtChanged, onDataChanged }: {
+    deck: Deck; decks: Deck[]; cards: Cards; art?: DeckArt; openCard?: string;
+    onArtChanged: () => Promise<void>; onDataChanged: () => Promise<void>;
   } = $props();
 
   // View settings are remembered per browser.
@@ -39,6 +42,8 @@
   const cardHref = (name: string) => href({ view: "deck", deck: deck.id, card: name });
   const cost = (colors: string | null) => (colors ?? "").split("").map((c) => `{${c}}`).join("");
 
+  const driftCount = $derived(deck.drift ? deck.drift.onlyInDoc.length + deck.drift.onlyInList.length : 0);
+  let showHand = $state(false);
   let copied = $state(false);
   async function copyList() {
     if (!deck.list) return;
@@ -73,6 +78,27 @@
       </div>
     </div>
   </header>
+
+  {#if driftCount}
+    <details class="drift">
+      <summary>
+        <strong>The list and the notes disagree on {driftCount} {driftCount === 1 ? "card" : "cards"}.</strong>
+        This page shows <span class="mono">{deck.list}</span>.
+      </summary>
+      <div class="drift-body">
+        <div>
+          <h3 class="eyebrow">Only in the notes ({deck.drift!.onlyInDoc.length})</h3>
+          <p>{deck.drift!.onlyInDoc.join(", ") || "None"}</p>
+        </div>
+        <div>
+          <h3 class="eyebrow">Only in the list ({deck.drift!.onlyInList.length})</h3>
+          <p>{deck.drift!.onlyInList.join(", ") || "None"}</p>
+        </div>
+        <p class="drift-hint">If the notes are right, rebuild the list from them (this replaces the .txt):
+          <code>python DeckSite/tools/md_to_txt.py {deck.doc} {deck.list}</code></p>
+      </div>
+    </details>
+  {/if}
 
   {#if deck.status === "no_list"}
     <section class="empty">
@@ -113,12 +139,17 @@
               {#each decks.filter((d) => d.id !== deck.id && d.status !== "no_list") as d (d.id)}<option value={d.id}>{d.name}</option>{/each}
             </select>
           </label>
+          {#if deck.status !== "pool"}<button class="btn" onclick={() => (showHand = !showHand)} aria-pressed={showHand}>{showHand ? "Hide sample hand" : "Sample hand"}</button>{/if}
           {#if deck.list}<button class="btn" onclick={copyList}>{copied ? "Copied" : "Copy for TappedOut"}</button>{/if}
         </div>
         <Stats {curve} {types} {pips} />
+        <ProxyPanel {deck} {art} {onDataChanged} />
       </aside>
 
       <main class="grid-area">
+        {#if showHand}
+          <SampleHand {deck} {cards} {imageFor} {cardHref} onClose={() => (showHand = false)} />
+        {/if}
         {#if deck.commanders.length}
           <section class="group">
             <h2 class="group-head"><span>Commander</span></h2>
@@ -186,6 +217,21 @@
   .status-complete { color: var(--good); border-color: color-mix(in srgb, var(--good) 45%, transparent); }
   .status-in_progress { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 45%, transparent); }
 
+  .drift {
+    max-width: 86rem; margin: 0 auto var(--space-2);
+    padding: 0 max(16px, env(safe-area-inset-right, 0px)) 0 max(16px, env(safe-area-inset-left, 0px));
+    font-size: var(--step--1); color: var(--muted);
+  }
+  .drift summary {
+    cursor: pointer; padding: var(--space-3) var(--space-4);
+    border: 1px solid color-mix(in srgb, var(--warn) 45%, var(--line)); border-radius: var(--radius-m);
+    background: color-mix(in srgb, var(--warn) 8%, var(--surface));
+  }
+  .drift summary strong { color: var(--warn); }
+  .drift-body { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr)); gap: var(--space-4); padding: var(--space-4); }
+  .drift-body h3 { margin-bottom: var(--space-1); }
+  .drift-hint { grid-column: 1 / -1; color: var(--faint); }
+  .drift-hint code { display: block; margin-top: var(--space-1); font-family: var(--font-mono); font-size: var(--step--2); color: var(--fg); background: var(--surface-2); padding: 0.4rem 0.6rem; border-radius: var(--radius-s); overflow-x: auto; white-space: nowrap; }
   .empty { max-width: 46rem; margin: 0 auto; padding: var(--space-7) max(16px, env(safe-area-inset-left, 0px)); display: flex; flex-direction: column; gap: var(--space-3); color: var(--muted); }
   .empty h2 { color: var(--fg); }
 
@@ -194,7 +240,12 @@
     padding: var(--space-5) max(16px, env(safe-area-inset-right, 0px)) var(--space-8) max(16px, env(safe-area-inset-left, 0px));
     display: grid; grid-template-columns: 15.5rem minmax(0, 1fr); gap: var(--space-6); align-items: start;
   }
-  .side { position: sticky; top: var(--space-4); display: flex; flex-direction: column; gap: var(--space-6); }
+  .side {
+    position: sticky; top: var(--space-4);
+    max-height: calc(100dvh - 2 * var(--space-4)); overflow-y: auto; scrollbar-width: thin;
+    padding-right: var(--space-2); padding-bottom: var(--space-4);
+    display: flex; flex-direction: column; gap: var(--space-6);
+  }
   .controls { display: flex; flex-direction: column; gap: var(--space-4); }
   .controls label { display: flex; flex-direction: column; gap: var(--space-1); }
   select {
@@ -218,7 +269,7 @@
 
   @media (max-width: 860px) {
     .layout { grid-template-columns: minmax(0, 1fr); }
-    .side { position: static; }
+    .side { position: static; max-height: none; overflow: visible; }
     .controls { flex-direction: row; flex-wrap: wrap; align-items: end; }
     .grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 7.5rem), 1fr)); gap: var(--space-2); }
   }

@@ -31,7 +31,13 @@
       <h1>Deck shelf</h1>
       <p class="sub">{decks.length} decks · {totalCards} cards listed</p>
     </div>
-    <ThemeToggleButton />
+    <div class="tools">
+      <a class="search-link" href={href({ view: "search", q: "" })}>
+        <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" stroke-width="2"></circle><path d="M15.5 15.5 21 21" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path></svg>
+        Search all decks
+      </a>
+      <ThemeToggleButton />
+    </div>
   </header>
 
   {#each families as fam (fam.root.id)}
@@ -79,7 +85,14 @@
     flex-direction: column;
     gap: var(--space-7);
   }
-  .top { display: flex; justify-content: space-between; align-items: start; gap: var(--space-4); }
+  .top { display: flex; justify-content: space-between; align-items: start; gap: var(--space-4); flex-wrap: wrap; }
+  .tools { display: flex; gap: var(--space-2); align-items: center; }
+  .search-link {
+    display: inline-flex; align-items: center; gap: var(--space-2);
+    min-width: 14rem; padding: 0.45rem 0.8rem; border: 1px solid var(--line); border-radius: var(--radius-m);
+    background: var(--surface); color: var(--faint); text-decoration: none; font-size: var(--step--1);
+  }
+  .search-link:hover { border-color: var(--accent); color: var(--fg); }
   h1 { font-size: var(--step-4); letter-spacing: -0.025em; font-weight: 720; margin-top: var(--space-1); }
   .sub { color: var(--muted); margin-top: var(--space-2); }
 
