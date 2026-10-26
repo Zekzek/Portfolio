@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { colorGroup, groupDeck, manaCurve, manaSymbols, pipCounts, primaryType, symbolUrl, typeCounts } from "../src/lib/deck";
+import { SIDEBOARD, colorGroup, groupDeck, manaCurve, manaSymbols, pipCounts, primaryType, symbolUrl, typeCounts } from "../src/lib/deck";
 import { parseRoute, href } from "../src/lib/route";
 import { countLabel } from "../src/lib/labels";
 import type { Cards, Deck } from "../src/lib/types";
@@ -107,5 +107,21 @@ describe("sample hand", () => {
     const s = shuffle(lib, rng);
     expect(s).not.toEqual(lib);
     expect([...s].sort()).toEqual([...lib].sort());
+  });
+});
+
+describe("sideboard", () => {
+  const withSide: Deck = {
+    ...deck,
+    categories: [...deck.categories, { name: SIDEBOARD, excluded: true, cards: [{ name: "Ulamog", count: 1 }] }],
+  };
+  it("comes last in every grouping, marked, and isn't counted in the stats", () => {
+    for (const by of ["category", "type", "cmc", "color"] as const) {
+      const g = groupDeck(withSide, cards, by, "name");
+      const last = g[g.length - 1];
+      expect([last.key, last.sideboard, last.entries.map((e) => e.name)]).toEqual([SIDEBOARD, true, ["Ulamog"]]);
+      expect(g.filter((x) => !x.excluded).reduce((n, x) => n + x.count, 0)).toBe(22);
+    }
+    expect(manaCurve(withSide, cards)).toEqual(manaCurve(deck, cards));
   });
 });

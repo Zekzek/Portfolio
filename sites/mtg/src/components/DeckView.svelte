@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { groupDeck, mainEntries, manaCurve, pipCounts, typeCounts, type GroupBy, type SortBy } from "../lib/deck";
+  import { SIDEBOARD, groupDeck, isSideboard, mainEntries, manaCurve, pipCounts, typeCounts, type GroupBy, type SortBy } from "../lib/deck";
   import { STATUS_LABEL, countLabel } from "../lib/labels";
   import { href } from "../lib/route";
   import { ApiError, editDeck, revertDeck } from "../lib/api";
@@ -36,7 +36,38 @@
   let busy = $state(false);
   let why = $state("");
   let message = $state<{ ok: boolean; text: string } | null>(null);
-  const categoryNames = $derived(deck.categories.map((c) => c.name));
+  // Every category plus the Sideboard (created on first use).
+  const categoryNames = $derived([...deck.categories.filter((c) => !isSideboard(c)).map((c) => c.name), SIDEBOARD]);
+  const sideboardEmpty = $derived(!deck.categories.some((c) => isSideboard(c) && c.cards.length));
+
+  // Drag and drop while editing: drag a card onto another category (or the Sideboard) to move it.
+  const DRAG_TYPE = "application/x-deckshelf-card";
+  let dragging = $state<{ card: string; from: string } | null>(null);
+  let dropOn = $state<string | null>(null);
+  function dragStart(e: DragEvent, card: string, from: string) {
+    if (!editing || !e.dataTransfer) return;
+    e.dataTransfer.setData(DRAG_TYPE, card);
+    e.dataTransfer.effectAllowed = "move";
+    dragging = { card, from };
+  }
+  function dragEnd() { dragging = null; dropOn = null; }
+  function dragOver(e: DragEvent, category: string) {
+    if (!dragging || busy || dragging.from === category) return;
+    e.preventDefault();
+    if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
+    dropOn = category;
+  }
+  function dragLeave(e: DragEvent, category: string) {
+    const to = e.relatedTarget as Node | null;
+    if (dropOn === category && !(to && (e.currentTarget as Node).contains(to))) dropOn = null;
+  }
+  function drop(e: DragEvent, category: string) {
+    e.preventDefault();
+    const d = dragging;
+    dragEnd();
+    if (!d || d.from === category) return;
+    edit([category === SIDEBOARD ? { op: "sideboard", card: d.card } : { op: "move", card: d.card, category }]);
+  }
 
   async function edit(ops: EditOp[], label?: string): Promise<boolean> {
     busy = true;
@@ -238,7 +269,7 @@
                 <input id="edit-why" type="text" bind:value={why} placeholder="Optional, e.g. cutting for the graveyard plan" />
               </label>
             </div>
-            <p class="editor-hint">Changes save right away and update the .txt and the Deck List in the notes. Undo is under Changes.</p>
+            <p class="editor-hint">Drag cards between categories, or onto the Sideboard to set them aside. × sets a card aside; × in the Sideboard deletes it. Changes save right away and update the .txt and the Deck List in the notes. Undo is under Changes.</p>
           </section>
         {/if}
         {#if message}<p class="msg" class:err={!message.ok} role="status">{message.text}</p>{/if}
@@ -256,11 +287,13 @@
           </section>
         {/if}
         {#each groups as g (g.key)}
-          <section class="group">
+          <section class="group" class:side={g.sideboard} class:drop-target={dropOn === g.key} role="group" aria-label={g.label}
+            ondragover={(e) => editing && dragOver(e, g.key)} ondragleave={(e) => dragLeave(e, g.key)} ondrop={(e) => editing && drop(e, g.key)}>
             <h2 class="group-head"><span>{g.label}</span> <span class="mono dim">{g.count}</span></h2>
             <ul class="grid" role="list">
               {#each g.entries as e (e.name)}
-                <li>
+                <li draggable={editing && !busy} class:lifted={dragging?.card === e.name}
+                  ondragstart={(ev) => dragStart(ev, e.name, g.key)} ondragend={dragEnd}>
                   <CardTile entry={e} card={cards[e.name]} image={imageFor(e.name)} proxy={isProxy(e.name)} original={isFallback(e.name)} href={cardHref(e.name)} />
                   {#if editing}<EditControls entry={e} category={g.key} categories={categoryNames} {busy} onEdit={(ops) => edit(ops)} />{/if}
                 </li>
@@ -268,6 +301,13 @@
             </ul>
           </section>
         {/each}
+        {#if editing && sideboardEmpty}
+          <section class="group side empty-side" class:drop-target={dropOn === SIDEBOARD} role="group" aria-label={SIDEBOARD}
+            ondragover={(e) => dragOver(e, SIDEBOARD)} ondragleave={(e) => dragLeave(e, SIDEBOARD)} ondrop={(e) => drop(e, SIDEBOARD)}>
+            <h2 class="group-head"><span>{SIDEBOARD} · set aside, not counted</span></h2>
+            <p class="dim-text">Drag cards here (or use ×) to set them aside without losing them. They stay with this deck but aren't counted or exported.</p>
+          </section>
+        {/if}
         {#if deck.proxyOnly.length}
           <section class="group extra">
             <h2 class="group-head"><span>Proxy art, not in this list</span> <span class="mono dim">{deck.proxyOnly.length}</span></h2>
@@ -283,6 +323,13 @@
     </div>
   {/if}
 </div>
+
+{#if dragging && dragging.from !== SIDEBOARD}
+  <div class="aside-bar" class:drop-target={dropOn === SIDEBOARD} role="region" aria-label="Sideboard drop zone"
+    ondragover={(e) => dragOver(e, SIDEBOARD)} ondragleave={(e) => dragLeave(e, SIDEBOARD)} ondrop={(e) => drop(e, SIDEBOARD)}>
+    Drop here to set {dragging.card} aside in the Sideboard
+  </div>
+{/if}
 
 {#if openCard}
   <CardDialog name={openCard} card={cards[openCard]} {deck} {decks} {art} {proxies} currentSet={imageSet} closeHref={href({ view: "deck", deck: deck.id })} {onArtChanged}
@@ -384,4 +431,20 @@
     .controls { flex-direction: row; flex-wrap: wrap; align-items: end; }
     .grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 7.5rem), 1fr)); gap: var(--space-2); }
   }
+
+  /* Editing: drag and drop */
+  .group.drop-target { outline: 2px dashed var(--accent); outline-offset: 6px; border-radius: var(--radius-m); }
+  .group.side .group-head { color: var(--muted); }
+  .empty-side { border: 1px dashed var(--line); border-radius: var(--radius-m); padding: var(--space-4); }
+  li[draggable="true"] { cursor: grab; }
+  li.lifted { opacity: 0.4; }
+  .aside-bar {
+    position: fixed; z-index: 20; left: 50%; transform: translateX(-50%);
+    bottom: calc(var(--space-4) + env(safe-area-inset-bottom, 0px));
+    width: min(36rem, calc(100vw - 32px)); padding: var(--space-4); text-align: center;
+    background: var(--surface); color: var(--fg); font-weight: 650;
+    border: 2px dashed var(--accent); border-radius: var(--radius-m);
+    box-shadow: 0 12px 30px -12px rgb(0 0 0 / 0.7);
+  }
+  .aside-bar.drop-target { background: color-mix(in srgb, var(--accent) 22%, var(--surface)); }
 </style>

@@ -1,5 +1,7 @@
 <script lang="ts">
   // Count, move and remove for one card while editing a deck list.
+  // Removing a card sets it aside in the Sideboard; removing it from the Sideboard deletes it.
+  import { SIDEBOARD } from "../lib/deck";
   import type { DeckEntry, EditOp } from "../lib/types";
 
   let { entry, category, categories, busy, onEdit }: {
@@ -14,8 +16,13 @@
     <span class="n mono" aria-label="Copies">{entry.count}</span>
     <button class="icon" disabled={busy} aria-label={`One more ${entry.name}`}
       onclick={() => onEdit([{ op: "set_count", card: entry.name, count: entry.count + 1 }])}>+</button>
-    <button class="icon remove" disabled={busy} aria-label={`Remove ${entry.name}`} title="Remove from the deck"
-      onclick={() => onEdit([{ op: "remove", card: entry.name }])}>×</button>
+    {#if category === SIDEBOARD}
+      <button class="icon remove" disabled={busy} aria-label={`Delete ${entry.name} from the deck`} title="Delete from the deck (undo is under Changes)"
+        onclick={() => onEdit([{ op: "remove", card: entry.name }])}>×</button>
+    {:else}
+      <button class="icon remove" disabled={busy} aria-label={`Set ${entry.name} aside in the Sideboard`} title="Set aside in the Sideboard"
+        onclick={() => onEdit([{ op: "sideboard", card: entry.name }])}>×</button>
+    {/if}
   </div>
   <label class="visually-hidden" for={`move-${entry.name}`}>Move {entry.name} to</label>
   <select id={`move-${entry.name}`} disabled={busy} value={category}

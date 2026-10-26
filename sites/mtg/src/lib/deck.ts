@@ -4,12 +4,17 @@ import type { Card, Cards, Deck, DeckEntry } from "./types";
 export type GroupBy = "category" | "type" | "cmc" | "color";
 export type SortBy = "cmc" | "name";
 
+/** Each deck's pile of cards set aside (DeckSite deckstore.SIDEBOARD): not counted, not exported. */
+export const SIDEBOARD = "Sideboard";
+export const isSideboard = (c: { name: string; excluded?: boolean }) => c.name === SIDEBOARD && !!c.excluded;
+
 export interface Group {
   key: string;
   label: string;
   entries: DeckEntry[];
   count: number; // copies, e.g. 13x Forest counts 13
   excluded?: boolean;
+  sideboard?: boolean;
 }
 
 // A card goes in the first type it has, in this order (Artifact Creature -> Creature).
@@ -64,7 +69,8 @@ export function groupDeck(deck: Deck, cards: Cards, by: GroupBy, sort: SortBy): 
   let groups: Group[];
   if (by === "category") {
     groups = deck.categories.map((c) => ({
-      key: c.name, label: c.excluded ? `${c.name} · reference only` : c.name, entries: c.cards, count: 0, excluded: !!c.excluded,
+      key: c.name, entries: c.cards, count: 0, excluded: !!c.excluded, sideboard: isSideboard(c),
+      label: isSideboard(c) ? `${c.name} · set aside, not counted` : c.excluded ? `${c.name} · reference only` : c.name,
     }));
   } else {
     const keyOf = (e: DeckEntry): string => {
@@ -83,6 +89,9 @@ export function groupDeck(deck: Deck, cards: Cards, by: GroupBy, sort: SortBy): 
     const label = (k: string) =>
       by === "color" ? colorLabel(k) : by === "cmc" ? (k === "Land" ? "Lands" : k === "7" ? "7+ mana" : `${k} mana`) : k;
     groups = order.filter((k) => map.has(k)).map((k) => ({ key: k, label: label(k), entries: map.get(k)!, count: 0 }));
+    // The sideboard shows in every grouping, at the end.
+    const side = deck.categories.find(isSideboard);
+    if (side?.cards.length) groups.push({ key: SIDEBOARD, label: `${SIDEBOARD} · set aside, not counted`, entries: side.cards, count: 0, excluded: true, sideboard: true });
   }
   return groups.map((g) => ({ ...g, entries: sortEntries(g.entries, cards, sort), count: copies(g.entries) }));
 }

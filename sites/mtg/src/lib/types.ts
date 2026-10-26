@@ -105,6 +105,7 @@ export type EditOp =
   | { op: "remove"; card: string }
   | { op: "set_count"; card: string; count: number }
   | { op: "move"; card: string; category: string }
+  | { op: "sideboard"; card: string } // set aside in the deck's Sideboard
   | { op: "set_note"; card: string; note: string }
   | { op: "set_deck"; field: "status" | "note" | "name" | "proxySet"; value: string };
 
