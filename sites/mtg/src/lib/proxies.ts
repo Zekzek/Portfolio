@@ -26,12 +26,23 @@ export function coverage(proxies: Proxies | null, set: string, names: string[]):
   return names.filter((n) => cards[proxyKey(n)]).length;
 }
 
-/** A deck's picture: its first commander from the deck's proxy set, or the original card's art. */
-export function deckArt(deck: Deck, cards: Cards, proxies: Proxies | null): { url: string; proxy: boolean } | null {
-  const name = deck.commanderNames[0];
-  if (!name) return null;
+export interface CardArt { name: string; url: string; proxy: boolean }
+
+/** A card's picture: from the deck's proxy set when it has one, or the original card's art. */
+function cardArt(name: string, deck: Deck, cards: Cards, proxies: Proxies | null): CardArt | null {
   const p = deck.proxySet ? proxyFor(proxies, deck.proxySet, name) : undefined;
-  if (p) return { url: p.url, proxy: true };
+  if (p) return { name, url: p.url, proxy: true };
   const crop = cards[name]?.art_crop;
-  return crop ? { url: crop, proxy: false } : null;
+  return crop ? { name, url: crop, proxy: false } : null;
+}
+
+/** A deck's picture: its first commander. */
+export function deckArt(deck: Deck, cards: Cards, proxies: Proxies | null): CardArt | null {
+  const name = deck.commanderNames[0];
+  return name ? cardArt(name, deck, cards, proxies) : null;
+}
+
+/** Pictures of all of a deck's commanders that have one (partners side by side). */
+export function commanderArts(deck: Deck, cards: Cards, proxies: Proxies | null): CardArt[] {
+  return deck.commanderNames.map((n) => cardArt(n, deck, cards, proxies)).filter((a): a is CardArt => !!a);
 }

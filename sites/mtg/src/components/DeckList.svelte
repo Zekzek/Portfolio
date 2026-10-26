@@ -1,6 +1,6 @@
 <script lang="ts">
   import { href } from "../lib/route";
-  import { deckArt } from "../lib/proxies";
+  import { commanderArts } from "../lib/proxies";
   import type { Cards, Deck, Proxies } from "../lib/types";
   import ThemeToggleButton from "./ThemeToggleButton.svelte";
   import Mana from "./Mana.svelte";
@@ -21,8 +21,8 @@
     });
   });
 
-  // The commander from the deck's proxy set when it has one, else the original art.
-  const art = (d: Deck) => deckArt(d, cards, proxies);
+  // Each commander from the deck's proxy set when it has one, else the original art; partners side by side.
+  const arts = (d: Deck) => commanderArts(d, cards, proxies).slice(0, 2);
   const parentName = (d: Deck) => decks.find((x) => x.id === d.parent)?.name;
   const cost = (colors: string | null) => (colors ?? "").split("").map((c) => `{${c}}`).join("");
   const totalCards = $derived(decks.reduce((n, d) => n + d.count + d.commanders.reduce((a, c) => a + c.count, 0), 0));
@@ -57,11 +57,14 @@
       </div>
       <ul class="tiles" role="list">
         {#each fam.members as d (d.id)}
-          {@const a = art(d)}
+          {@const pics = arts(d)}
           <li>
             <a class="tile" class:empty={d.status === "no_list"} href={href({ view: "deck", deck: d.id })}>
-              <div class="art" class:proxy={a?.proxy} style:background-image={a ? `url("${a.url}")` : undefined}>
-                {#if !a}<span class="art-fallback" aria-hidden="true">{d.name.slice(0, 1)}</span>{/if}
+              <div class="art" class:pair={pics.length > 1}>
+                {#each pics as a (a.name)}
+                  <div class="pic" class:proxy={a.proxy} style:background-image={`url("${a.url}")`}></div>
+                {/each}
+                {#if !pics.length}<span class="art-fallback" aria-hidden="true">{d.name.slice(0, 1)}</span>{/if}
               </div>
               <div class="body">
                 <div class="title-row">
@@ -127,11 +130,14 @@
   .tile.empty { opacity: 0.7; }
   .art {
     aspect-ratio: 16 / 7;
-    background: var(--surface-2) center 22% / cover no-repeat;
+    background: var(--surface-2);
     display: grid; place-items: center;
   }
+  .art.pair { grid-template-columns: 1fr 1fr; gap: 2px; place-items: stretch; }
+  .pic { width: 100%; height: 100%; background: center 22% / cover no-repeat; }
   /* A whole proxy card: frame its art box (upper third of the card). */
-  .art.proxy { background-position: center 25%; }
+  .pic.proxy { background-position: center 25%; }
+  .pair .pic.proxy { background-size: 140% auto; background-position: center 20%; }
   .art-fallback { font-family: var(--font-display); font-size: var(--step-3); color: var(--faint); }
   .body { padding: var(--space-3) var(--space-4) var(--space-4); display: flex; flex-direction: column; gap: var(--space-2); flex: 1; }
   .title-row { display: flex; justify-content: space-between; align-items: start; gap: var(--space-2); }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { coverage, deckArt, proxyFor, proxyHistory, proxyKey } from "../src/lib/proxies";
+import { commanderArts, coverage, deckArt, proxyFor, proxyHistory, proxyKey } from "../src/lib/proxies";
 import type { Cards, Deck, Proxies } from "../src/lib/types";
 
 // Must match DeckSite/proxies.py key(): the Python side writes the keys, the page looks them up.
@@ -41,11 +41,19 @@ describe("deck art", () => {
   const cards = { Fabricate: { name: "Fabricate", art_crop: "/crop-f" }, Anger: { name: "Anger", art_crop: "/crop-a" } } as Cards;
   const deck = (commander: string, proxySet: string | null) => ({ commanderNames: [commander], proxySet }) as Deck;
   it("uses the commander from the deck's proxy set", () => {
-    expect(deckArt(deck("Fabricate", "ink"), cards, proxies)).toEqual({ url: "/f7", proxy: true });
+    expect(deckArt(deck("Fabricate", "ink"), cards, proxies)).toEqual({ name: "Fabricate", url: "/f7", proxy: true });
   });
   it("falls back to the original art when the set lacks the commander or the deck has no set", () => {
-    expect(deckArt(deck("Anger", "neon"), cards, proxies)).toEqual({ url: "/crop-a", proxy: false });
-    expect(deckArt(deck("Anger", null), cards, proxies)).toEqual({ url: "/crop-a", proxy: false });
-    expect(deckArt(deck("Anger", "ink"), cards, null)).toEqual({ url: "/crop-a", proxy: false });
+    expect(deckArt(deck("Anger", "neon"), cards, proxies)).toEqual({ name: "Anger", url: "/crop-a", proxy: false });
+    expect(deckArt(deck("Anger", null), cards, proxies)).toEqual({ name: "Anger", url: "/crop-a", proxy: false });
+    expect(deckArt(deck("Anger", "ink"), cards, null)).toEqual({ name: "Anger", url: "/crop-a", proxy: false });
+  });
+});
+
+describe("commander arts", () => {
+  it("returns every commander, each from the proxy set or its original art", () => {
+    const cards = { Fabricate: { name: "Fabricate", art_crop: "/crop-f" }, Anger: { name: "Anger", art_crop: "/crop-a" }, Nope: { name: "Nope" } } as Cards;
+    const deck = { commanderNames: ["Fabricate", "Nope", "Anger"], proxySet: "neon" } as Deck;
+    expect(commanderArts(deck, cards, proxies).map((a) => a.url)).toEqual(["/nf1", "/crop-a"]);
   });
 });
