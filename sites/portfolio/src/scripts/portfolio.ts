@@ -99,9 +99,15 @@ const dialogImg = dialog.querySelector("img")!;
 document.addEventListener("click", (e) => {
   const shot = (e.target as Element).closest<HTMLElement>(".shot");
   if (!shot) return;
+  // Hide the image until the new one has loaded, so the previous screenshot never flashes.
+  dialogImg.classList.add("loading");
+  dialogImg.removeAttribute("src");
   dialogImg.src = shot.dataset.full!;
   dialogImg.alt = shot.dataset.alt ?? "";
+  if (dialogImg.complete && dialogImg.naturalWidth) dialogImg.classList.remove("loading");
   dialog.showModal();
 });
+dialogImg.addEventListener("load", () => dialogImg.classList.remove("loading"));
+dialogImg.addEventListener("error", () => dialogImg.classList.remove("loading"));
 // Click anywhere on the backdrop or image closes it, like the old site; Escape works natively.
 dialog.addEventListener("click", () => dialog.close());
