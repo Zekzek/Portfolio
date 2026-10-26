@@ -1,10 +1,11 @@
 <script lang="ts">
-  import { groupDeck, manaCurve, pipCounts, typeCounts, type GroupBy, type SortBy } from "../lib/deck";
+  import { groupDeck, mainEntries, manaCurve, pipCounts, typeCounts, type GroupBy, type SortBy } from "../lib/deck";
   import { STATUS_LABEL, countLabel } from "../lib/labels";
   import { href } from "../lib/route";
   import { ApiError, editDeck, revertDeck } from "../lib/api";
   import { editable } from "../lib/connection.svelte";
-  import type { Cards, Deck, DeckArt, EditOp } from "../lib/types";
+  import { coverage, proxyFor } from "../lib/proxies";
+  import type { Cards, Deck, DeckArt, EditOp, Proxies } from "../lib/types";
   import AddCard from "./AddCard.svelte";
   import CardDialog from "./CardDialog.svelte";
   import EditControls from "./EditControls.svelte";
@@ -16,8 +17,8 @@
   import Stats from "./Stats.svelte";
   import ThemeToggleButton from "./ThemeToggleButton.svelte";
 
-  let { deck, decks, cards, art, openCard, onArtChanged, onDataChanged }: {
-    deck: Deck; decks: Deck[]; cards: Cards; art?: DeckArt; openCard?: string;
+  let { deck, decks, cards, art, proxies, openCard, onArtChanged, onDataChanged }: {
+    deck: Deck; decks: Deck[]; cards: Cards; art?: DeckArt; proxies: Proxies | null; openCard?: string;
     onArtChanged: () => Promise<void>; onDataChanged: () => Promise<void>;
   } = $props();
 
@@ -26,8 +27,9 @@
   const remember = (k: string, v: string) => { try { localStorage.setItem(k, v); } catch {} };
   let groupBy = $state(saved("deck.groupBy", "category") as GroupBy);
   let sortBy = $state(saved("deck.sortBy", "cmc") as SortBy);
-  let imageMode = $state(saved("deck.images", "scryfall") as "scryfall" | "proxy");
-  $effect(() => { remember("deck.groupBy", groupBy); remember("deck.sortBy", sortBy); remember("deck.images", imageMode); });
+  // Card images: the deck's proxy set by default (newest version per card), or the original cards.
+  let imageSet = $state(deck.proxySet || "original");
+  $effect(() => { remember("deck.groupBy", groupBy); remember("deck.sortBy", sortBy); });
 
   // Editing: every change goes to the deck store with the version this page shows.
   let editing = $state(false);
@@ -82,14 +84,17 @@
   const parent = $derived(decks.find((d) => d.id === deck.parent));
   const forks = $derived(decks.filter((d) => d.parent === deck.id));
   const banner = $derived(cards[deck.commanderNames[0]]?.art_crop ?? null);
-  const proxyCount = $derived(art ? Object.values(art.cards).filter((c) => c[art.activeStyle]?.composed).length : 0);
+  const deckNames = $derived([...deck.commanders, ...mainEntries(deck)].map((e) => e.name));
+  const setChoices = $derived((proxies?.sets ?? []).map((s) => ({ ...s, covered: coverage(proxies, s.id, deckNames) })));
 
   function imageFor(name: string): string | null {
-    const composed = art?.cards[name]?.[art.activeStyle]?.composed;
-    if (imageMode === "proxy" && composed) return composed;
+    const p = imageSet === "original" ? undefined : proxyFor(proxies, imageSet, name);
+    if (p) return p.url;
     return cards[name]?.image ?? null;
   }
-  const isProxy = (name: string) => imageMode === "proxy" && !!art?.cards[name]?.[art.activeStyle]?.composed;
+  const isProxy = (name: string) => imageSet !== "original" && !!proxyFor(proxies, imageSet, name);
+  /** A proxy set is showing but has no image for this card, so it's the original. */
+  const isFallback = (name: string) => imageSet !== "original" && !proxyFor(proxies, imageSet, name);
   const cardHref = (name: string) => href({ view: "deck", deck: deck.id, card: name });
   const cost = (colors: string | null) => (colors ?? "").split("").map((c) => `{${c}}`).join("");
 
@@ -176,12 +181,20 @@
               <option value="name">Name</option>
             </select>
           </label>
-          {#if art}
-            <fieldset class="seg">
-              <legend class="eyebrow">Card images</legend>
-              <label><input type="radio" bind:group={imageMode} value="scryfall" /> Original</label>
-              <label><input type="radio" bind:group={imageMode} value="proxy" /> Proxies <span class="mono dim">{proxyCount}</span></label>
-            </fieldset>
+          <label>
+            <span class="eyebrow">Card images</span>
+            <select bind:value={imageSet} id="image-set">
+              {#each setChoices as s (s.id)}
+                <option value={s.id}>{s.name} · {s.covered} cards{s.id === deck.proxySet ? " (default)" : ""}</option>
+              {/each}
+              <option value="original">Original cards{!deck.proxySet ? " (default)" : ""}</option>
+            </select>
+          </label>
+          {#if editable() && imageSet !== (deck.proxySet || "original")}
+            <button class="link-btn" disabled={busy}
+              onclick={() => edit([{ op: "set_deck", field: "proxySet", value: imageSet === "original" ? "" : imageSet }])}>
+              Make this the deck's default
+            </button>
           {/if}
           <label>
             <span class="eyebrow">Compare with</span>
@@ -236,7 +249,7 @@
             <h2 class="group-head"><span>Commander</span></h2>
             <ul class="grid" role="list">
               {#each deck.commanders as e (e.name)}
-                <li><CardTile entry={e} card={cards[e.name]} image={imageFor(e.name)} proxy={isProxy(e.name)} href={cardHref(e.name)} /></li>
+                <li><CardTile entry={e} card={cards[e.name]} image={imageFor(e.name)} proxy={isProxy(e.name)} original={isFallback(e.name)} href={cardHref(e.name)} /></li>
               {/each}
             </ul>
           </section>
@@ -247,7 +260,7 @@
             <ul class="grid" role="list">
               {#each g.entries as e (e.name)}
                 <li>
-                  <CardTile entry={e} card={cards[e.name]} image={imageFor(e.name)} proxy={isProxy(e.name)} href={cardHref(e.name)} />
+                  <CardTile entry={e} card={cards[e.name]} image={imageFor(e.name)} proxy={isProxy(e.name)} original={isFallback(e.name)} href={cardHref(e.name)} />
                   {#if editing}<EditControls entry={e} category={g.key} categories={categoryNames} {busy} onEdit={(ops) => edit(ops)} />{/if}
                 </li>
               {/each}
@@ -271,7 +284,7 @@
 </div>
 
 {#if openCard}
-  <CardDialog name={openCard} card={cards[openCard]} {deck} {decks} {art} closeHref={href({ view: "deck", deck: deck.id })} {onArtChanged}
+  <CardDialog name={openCard} card={cards[openCard]} {deck} {decks} {art} {proxies} currentSet={imageSet} closeHref={href({ view: "deck", deck: deck.id })} {onArtChanged}
     onEdit={!editable() ? undefined : (ops) => edit(ops)} />
 {/if}
 
@@ -349,6 +362,8 @@
   .grid-area { display: flex; flex-direction: column; gap: var(--space-6); min-width: 0; }
   .group-head { font-family: var(--font-display); font-size: var(--step-1); font-weight: 600; display: flex; align-items: baseline; gap: var(--space-2); padding-bottom: var(--space-2); border-bottom: 1px solid var(--line); margin-bottom: var(--space-3); }
   .extra .grid { opacity: 0.85; }
+  .link-btn { font: inherit; font-size: var(--step--1); border: 0; background: none; padding: 0; color: var(--accent); cursor: pointer; text-decoration: underline; text-underline-offset: 0.2em; text-align: left; }
+  .link-btn:disabled { opacity: 0.5; cursor: progress; }
   .readonly-note { font-size: var(--step--2); color: var(--faint); }
   .btn.on { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); font-weight: 700; }
   .editor { border: 1px solid var(--accent); border-radius: var(--radius-m); background: var(--surface); padding: var(--space-4); display: flex; flex-direction: column; gap: var(--space-3); }

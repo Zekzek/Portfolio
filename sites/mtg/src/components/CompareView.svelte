@@ -2,13 +2,14 @@
   import { compareDecks, countsDiffer, deckLetter, type Row } from "../lib/compare";
   import { isLand } from "../lib/deck";
   import { href } from "../lib/route";
-  import type { Art, Cards, Deck } from "../lib/types";
+  import { proxyFor } from "../lib/proxies";
+  import type { Art, Cards, Deck, Proxies } from "../lib/types";
   import CardDialog from "./CardDialog.svelte";
   import CardTile from "./CardTile.svelte";
   import ThemeToggleButton from "./ThemeToggleButton.svelte";
 
-  let { ids, decks, cards, art, openCard, onArtChanged }: {
-    ids: string[]; decks: Deck[]; cards: Cards; art: Art; openCard?: string; onArtChanged: () => Promise<void>;
+  let { ids, decks, cards, art, proxies = null, openCard, onArtChanged }: {
+    ids: string[]; decks: Deck[]; cards: Cards; art: Art; proxies?: Proxies | null; openCard?: string; onArtChanged: () => Promise<void>;
   } = $props();
 
   const saved = (k: string, fallback: string) => { try { return localStorage.getItem(k) ?? fallback; } catch { return fallback; } };
@@ -36,6 +37,9 @@
   const firstDeckWith = (name: string) => chosen.find((d, i) => cmp.rows.find((r) => r.name === name)?.counts[i]);
   const tag = (r: Row) =>
     r.counts.map((c, i) => (c ? (countsDiffer(r) ? `${deckLetter(i)}×${c}` : deckLetter(i)) : null)).filter(Boolean).join(" ");
+  // Proxies from the first compared deck's set, originals where that set has no image.
+  const imageOf = (name: string) =>
+    (chosen[0]?.proxySet && proxyFor(proxies, chosen[0].proxySet, name)?.url) || cards[name]?.image || null;
   const total = (d: Deck) => d.count + d.commanders.reduce((n, c) => n + c.count, 0);
   const sharedWithAll = (i: number) => cmp.rows.filter((r) => r.counts[i] && r.decksIn === chosen.length).length;
 </script>
@@ -107,7 +111,7 @@
             <ul class="grid" role="list">
               {#each s.rows as r (r.name)}
                 <li>
-                  <CardTile entry={{ name: r.name, count: 1 }} card={cards[r.name]} image={cards[r.name]?.image ?? null} href={cardHref(r.name)} />
+                  <CardTile entry={{ name: r.name, count: 1 }} card={cards[r.name]} image={imageOf(r.name)} href={cardHref(r.name)} />
                   {#if s.key === "some" || countsDiffer(r)}<p class="tag mono">{tag(r)}</p>{/if}
                 </li>
               {/each}
@@ -145,7 +149,7 @@
 
 {#if openCard && firstDeckWith(openCard)}
   {@const owner = firstDeckWith(openCard)!}
-  <CardDialog name={openCard} card={cards[openCard]} deck={owner} {decks} art={art[owner.id]}
+  <CardDialog name={openCard} card={cards[openCard]} deck={owner} {decks} art={art[owner.id]} {proxies} currentSet={chosen[0]?.proxySet ?? ""}
     closeHref={href({ view: "compare", decks: ids })} {onArtChanged} />
 {/if}
 

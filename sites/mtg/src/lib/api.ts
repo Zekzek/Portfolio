@@ -5,10 +5,10 @@
 //   snapshot  the hosted page reads the last upload from the private bucket (read-only)
 import { LOCAL_SERVER, authHeaders, conn } from "./connection.svelte";
 import { getJson as bucketJson, signAll } from "./hosted";
-import type { Art, Cards, Deck, EditOp, HistoryEntry } from "./types";
+import type { Art, Cards, Deck, EditOp, HistoryEntry, Proxies } from "./types";
 
 /** "/art/...", "/img?u=..." from this PC's server, made absolute when the hosted page is talking to it. */
-const SERVER_LINK = /^\/(img\?|art\/|proxy\/|print\/)/;
+const SERVER_LINK = /^\/(img\?|art\/|proxy\/|print\/|proxies\/)/;
 function absolutize<T>(data: T): T {
   if (conn.mode !== "live") return data;
   return JSON.parse(JSON.stringify(data), (_k, v) => (typeof v === "string" && SERVER_LINK.test(v) ? LOCAL_SERVER + v : v));
@@ -30,6 +30,9 @@ export const loadCards = () => getJson<Cards>("/data/cards.json");
 /** Snapshot art links point into the private bucket ("s3:..."), so they're signed after loading. */
 export const loadArt = async () =>
   conn.mode === "snapshot" ? signAll(await getJson<Art>("/data/art.json")) : getJson<Art>("/data/art.json");
+/** Proxy sets; snapshot links point into the private bucket and are signed after loading. */
+export const loadProxies = async () =>
+  conn.mode === "snapshot" ? signAll(await getJson<Proxies>("/data/proxies.json")) : getJson<Proxies>("/data/proxies.json");
 export const loadVersions = () => getJson<Record<string, number>>("/data/versions.json");
 export const loadHistory = (deck: string) => getJson<HistoryEntry[]>(`/data/history/${encodeURIComponent(deck)}.json`);
 /** When the snapshot was uploaded (snapshot mode only). */

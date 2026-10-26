@@ -1,10 +1,10 @@
 <script lang="ts">
-  import { loadArt, loadCards, loadDecks, loadSnapshotMeta, loadVersions } from "../lib/api";
+  import { loadArt, loadCards, loadDecks, loadProxies, loadSnapshotMeta, loadVersions } from "../lib/api";
   import { conn, connect, disconnect, refreshStatus } from "../lib/connection.svelte";
   import ConnectionBadge from "./ConnectionBadge.svelte";
   import { HOSTED, authState, type AuthState } from "../lib/hosted";
   import { parseRoute, type Route } from "../lib/route";
-  import type { Art, Cards, Deck } from "../lib/types";
+  import type { Art, Cards, Deck, Proxies } from "../lib/types";
   import CompareView from "./CompareView.svelte";
   import DeckList from "./DeckList.svelte";
   import SearchView from "./SearchView.svelte";
@@ -14,12 +14,13 @@
   let decks = $state<Deck[] | null>(null);
   let cards = $state<Cards>({});
   let art = $state<Art>({});
+  let proxies = $state<Proxies | null>(null);
   let error = $state<string | null>(null);
   let route = $state<Route>(parseRoute(location.hash));
 
   async function load() {
     try {
-      [decks, cards, art] = await Promise.all([loadDecks(), loadCards(), loadArt()]);
+      [decks, cards, art, proxies] = await Promise.all([loadDecks(), loadCards(), loadArt(), loadProxies().catch(() => null)]);
       error = null;
       if (conn.mode === "snapshot") loadSnapshotMeta().then((m) => (conn.snapshotAt = m.exportedAt)).catch(() => {});
     } catch (e) {
@@ -29,7 +30,7 @@
 
   /** After a pick or reroll: only the art changes. */
   async function reloadArt() {
-    art = await loadArt();
+    [art, proxies] = await Promise.all([loadArt(), loadProxies().catch(() => proxies)]);
   }
 
   $effect(() => {
@@ -134,10 +135,10 @@
   <div class="state"><p class="eyebrow">Loading decks…</p></div>
 {:else if route.view === "deck" && deck}
   {#key deck.id}
-    <DeckView {deck} {decks} {cards} art={art[deck.id]} openCard={route.view === "deck" ? route.card : undefined} onArtChanged={reloadArt} onDataChanged={load} />
+    <DeckView {deck} {decks} {cards} {proxies} art={art[deck.id]} openCard={route.view === "deck" ? route.card : undefined} onArtChanged={reloadArt} onDataChanged={load} />
   {/key}
 {:else if route.view === "compare"}
-  <CompareView ids={route.decks} {decks} {cards} {art} openCard={route.card} onArtChanged={reloadArt} />
+  <CompareView ids={route.decks} {decks} {cards} {art} {proxies} openCard={route.card} onArtChanged={reloadArt} />
 {:else if route.view === "search"}
   <SearchView q={route.q} {decks} {cards} {art} openCard={route.card} onArtChanged={reloadArt} />
 {:else}

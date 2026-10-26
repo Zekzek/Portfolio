@@ -1,13 +1,15 @@
 <script lang="ts">
   import { decksWith } from "../lib/deck";
   import { href } from "../lib/route";
-  import type { Card, Deck, DeckArt, EditOp } from "../lib/types";
+  import { proxyHistory } from "../lib/proxies";
+  import type { Card, Deck, DeckArt, EditOp, Proxies } from "../lib/types";
   import Mana from "./Mana.svelte";
   import OracleText from "./OracleText.svelte";
   import ProxyArt from "./ProxyArt.svelte";
 
-  let { name, card, deck, decks, art, closeHref, onArtChanged, onEdit }: {
-    name: string; card?: Card; deck: Deck; decks: Deck[]; art?: DeckArt; closeHref: string; onArtChanged: () => Promise<void>;
+  let { name, card, deck, decks, art, proxies = null, currentSet = "", closeHref, onArtChanged, onEdit }: {
+    name: string; card?: Card; deck: Deck; decks: Deck[]; art?: DeckArt; proxies?: Proxies | null; currentSet?: string;
+    closeHref: string; onArtChanged: () => Promise<void>;
     onEdit?: (ops: EditOp[]) => Promise<boolean>;
   } = $props();
 
@@ -27,6 +29,8 @@
   const image = $derived(faces ? faces[face]?.image : card?.image);
   const usedIn = $derived(decksWith(name, decks));
   const cardArt = $derived(art?.cards[name]);
+  // Proxy versions of this card, the set being shown first.
+  const versions = $derived(proxyHistory(proxies, name).sort((a, b) => Number(b.set.id === currentSet) - Number(a.set.id === currentSet)));
   // This card's entry in the deck (for its note), if the deck has it.
   const entry = $derived(deck.commanders.find((c) => c.name === name) ?? deck.categories.flatMap((c) => c.cards).find((c) => c.name === name));
   const inCategory = $derived(deck.categories.find((c) => c.cards.some((e) => e.name === name))?.name);
@@ -100,6 +104,25 @@
       </div>
     </div>
 
+    {#if versions.length}
+      <section class="versions" aria-labelledby="versions-h">
+        <h3 id="versions-h">Proxy versions</h3>
+        {#each versions as s (s.set.id)}
+          <div class="vset">
+            <p class="eyebrow">{s.set.name}{s.set.id === currentSet ? " · showing" : ""}</p>
+            <ul role="list">
+              {#each s.versions as v, i (v.v)}
+                <li class:win={i === 0}>
+                  <a href={v.url} target="_blank" rel="noopener"><img src={v.url} alt={`${name}, ${s.set.name} ${v.v}`} loading="lazy" /></a>
+                  <span class="mono">{v.v}{i === 0 ? " · in use" : ""}</span>
+                </li>
+              {/each}
+            </ul>
+          </div>
+        {/each}
+      </section>
+    {/if}
+
     {#if art && cardArt}
       <ProxyArt deckId={deck.id} cardName={name} {art} {cardArt} {onArtChanged} />
     {:else if art}
@@ -141,6 +164,14 @@
   .note-form { display: flex; gap: var(--space-2); }
   .note-form input { flex: 1; min-width: 0; font: inherit; font-size: var(--step--1); color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: var(--radius-m); padding: 0.35rem 0.55rem; }
   .note-text { color: var(--muted); font-style: italic; }
+  .versions { border-top: 1px solid var(--line); padding-top: var(--space-5); display: flex; flex-direction: column; gap: var(--space-4); }
+  .versions h3 { font-size: var(--step-1); }
+  .vset ul { list-style: none; padding: 0; margin: var(--space-2) 0 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr)); gap: var(--space-3); }
+  .vset li { display: flex; flex-direction: column; gap: 4px; }
+  .vset img { width: 100%; aspect-ratio: 63 / 88; object-fit: cover; border-radius: 4.6% / 3.3%; border: 2px solid transparent; }
+  .vset li.win img { border-color: var(--good); }
+  .vset span { font-size: var(--step--2); color: var(--muted); }
+  .vset li.win span { color: var(--good); }
   .no-proxy { color: var(--faint); font-size: var(--step--1); border-top: 1px solid var(--line); padding-top: var(--space-4); }
   .btn { font: inherit; font-size: var(--step--1); padding: 0.4rem 0.7rem; border-radius: var(--radius-m); border: 1px solid var(--line); background: var(--surface); color: var(--fg); cursor: pointer; }
 

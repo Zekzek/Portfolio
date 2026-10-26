@@ -1,8 +1,8 @@
 <script lang="ts">
   import type { Card, DeckEntry } from "../lib/types";
 
-  let { entry, card, image, proxy = false, href }: {
-    entry: DeckEntry; card?: Card; image: string | null; proxy?: boolean; href: string;
+  let { entry, card, image, proxy = false, original = false, href }: {
+    entry: DeckEntry; card?: Card; image: string | null; proxy?: boolean; original?: boolean; href: string;
   } = $props();
 </script>
 
@@ -16,6 +16,7 @@
     </span>
   {/if}
   {#if entry.count > 1}<span class="count mono">×{entry.count}</span>{/if}
+  {#if original}<span class="orig mono" title="No proxy in this set yet: showing the original card">original</span>{/if}
   {#if entry.note}<span class="note-mark" aria-label={`Note: ${entry.note}`}>✎</span>{/if}
 </a>
 
@@ -34,6 +35,11 @@
   .missing { position: absolute; inset: 0; padding: var(--space-3); display: flex; flex-direction: column; gap: var(--space-1); border: 1px dashed var(--line); border-radius: inherit; color: var(--fg); }
   .missing-name { font-weight: 700; font-size: var(--step--1); }
   .missing-type { font-size: var(--step--2); color: var(--muted); }
+  .orig {
+    position: absolute; top: 3%; right: 5%;
+    background: color-mix(in srgb, var(--bg) 85%, transparent); color: var(--muted);
+    font-size: var(--step--2); padding: 0.05rem 0.35rem; border-radius: var(--radius-s);
+  }
   .note-mark {
     position: absolute; left: 6%; bottom: 4%;
     background: var(--accent); color: var(--on-accent);

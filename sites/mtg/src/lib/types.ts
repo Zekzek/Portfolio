@@ -32,6 +32,7 @@ export interface Deck {
   count: number; // cards without commanders
   target: number; // 100 minus commanders
   version: number; // bumps on every change (page or deck.py)
+  proxySet?: string | null; // default proxy set (MTG/Proxies/<set>); empty = original cards
   updated: string;
   unknown: string[];
   proxyOnly: string[]; // in the DeckGen manifest but not in this list
@@ -105,4 +106,17 @@ export type EditOp =
   | { op: "set_count"; card: string; count: number }
   | { op: "move"; card: string; category: string }
   | { op: "set_note"; card: string; note: string }
-  | { op: "set_deck"; field: "status" | "note" | "name"; value: string };
+  | { op: "set_deck"; field: "status" | "note" | "name" | "proxySet"; value: string };
+
+export interface ProxySet {
+  id: string;
+  name: string;
+  description: string;
+  versions: string[]; // newest first
+}
+
+/** MTG/Proxies: per set, per card key (see proxyKey), its versions newest first; the first one wins. */
+export interface Proxies {
+  sets: ProxySet[];
+  cards: Record<string, Record<string, { v: string; url: string }[]>>;
+}
