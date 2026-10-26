@@ -4,7 +4,7 @@
   import { href } from "../lib/route";
   import { ApiError, editDeck, revertDeck } from "../lib/api";
   import { editable } from "../lib/connection.svelte";
-  import { coverage, proxyFor } from "../lib/proxies";
+  import { coverage, deckArt, proxyFor } from "../lib/proxies";
   import type { Cards, Deck, DeckArt, EditOp, Proxies } from "../lib/types";
   import AddCard from "./AddCard.svelte";
   import CardDialog from "./CardDialog.svelte";
@@ -83,7 +83,8 @@
   const pips = $derived(pipCounts(deck, cards));
   const parent = $derived(decks.find((d) => d.id === deck.parent));
   const forks = $derived(decks.filter((d) => d.parent === deck.id));
-  const banner = $derived(cards[deck.commanderNames[0]]?.art_crop ?? null);
+  const bannerArt = $derived(deckArt(deck, cards, proxies));
+  const banner = $derived(bannerArt?.url ?? null);
   const deckNames = $derived([...deck.commanders, ...mainEntries(deck)].map((e) => e.name));
   const setChoices = $derived((proxies?.sets ?? []).map((s) => ({ ...s, covered: coverage(proxies, s.id, deckNames) })));
 

@@ -1,13 +1,14 @@
 <script lang="ts">
   import { href } from "../lib/route";
-  import type { Cards, Deck } from "../lib/types";
+  import { deckArt } from "../lib/proxies";
+  import type { Cards, Deck, Proxies } from "../lib/types";
   import ThemeToggleButton from "./ThemeToggleButton.svelte";
   import Mana from "./Mana.svelte";
   import { STATUS_LABEL, countLabel } from "../lib/labels";
 
   import { HOSTED, signOut } from "../lib/hosted";
 
-  let { decks, cards, email = "" }: { decks: Deck[]; cards: Cards; email?: string } = $props();
+  let { decks, cards, proxies = null, email = "" }: { decks: Deck[]; cards: Cards; proxies?: Proxies | null; email?: string } = $props();
 
   // Families: each deck without a parent, followed by its forks (and their forks).
   const families = $derived.by(() => {
@@ -20,7 +21,8 @@
     });
   });
 
-  const art = (d: Deck) => cards[d.commanderNames[0]]?.art_crop ?? null;
+  // The commander from the deck's proxy set when it has one, else the original art.
+  const art = (d: Deck) => deckArt(d, cards, proxies);
   const parentName = (d: Deck) => decks.find((x) => x.id === d.parent)?.name;
   const cost = (colors: string | null) => (colors ?? "").split("").map((c) => `{${c}}`).join("");
   const totalCards = $derived(decks.reduce((n, d) => n + d.count + d.commanders.reduce((a, c) => a + c.count, 0), 0));
@@ -55,10 +57,11 @@
       </div>
       <ul class="tiles" role="list">
         {#each fam.members as d (d.id)}
+          {@const a = art(d)}
           <li>
             <a class="tile" class:empty={d.status === "no_list"} href={href({ view: "deck", deck: d.id })}>
-              <div class="art" style:background-image={art(d) ? `url("${art(d)}")` : undefined}>
-                {#if !art(d)}<span class="art-fallback" aria-hidden="true">{d.name.slice(0, 1)}</span>{/if}
+              <div class="art" class:proxy={a?.proxy} style:background-image={a ? `url("${a.url}")` : undefined}>
+                {#if !a}<span class="art-fallback" aria-hidden="true">{d.name.slice(0, 1)}</span>{/if}
               </div>
               <div class="body">
                 <div class="title-row">
@@ -127,6 +130,8 @@
     background: var(--surface-2) center 22% / cover no-repeat;
     display: grid; place-items: center;
   }
+  /* A whole proxy card: frame its art box (upper third of the card). */
+  .art.proxy { background-position: center 25%; }
   .art-fallback { font-family: var(--font-display); font-size: var(--step-3); color: var(--faint); }
   .body { padding: var(--space-3) var(--space-4) var(--space-4); display: flex; flex-direction: column; gap: var(--space-2); flex: 1; }
   .title-row { display: flex; justify-content: space-between; align-items: start; gap: var(--space-2); }

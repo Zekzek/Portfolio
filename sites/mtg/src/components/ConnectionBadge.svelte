@@ -31,10 +31,16 @@
 </script>
 
 <div class="badge" class:live={conn.mode === "live"}>
-  <button class="pill" onclick={() => (open = !open)} aria-expanded={open} aria-controls="conn-panel">
-    <span class="dot" aria-hidden="true"></span>
-    {#if conn.mode === "live"}Live from this computer{:else if conn.connecting}Connecting…{:else}Last upload{conn.snapshotAt ? ` · ${when(conn.snapshotAt)}` : ""}{/if}
-  </button>
+  <div class="row">
+    <button class="pill" onclick={() => (open = !open)} aria-expanded={open} aria-controls="conn-panel">
+      <span class="dot" aria-hidden="true"></span>
+      {#if conn.mode === "live"}Live from this computer{:else if conn.connecting}Connecting…{:else}Last upload{conn.snapshotAt ? ` · ${when(conn.snapshotAt)}` : ""}{/if}
+    </button>
+    {#if conn.mode !== "live" && !open}
+      <button class="pill connect" onclick={goLive} disabled={conn.connecting}>{conn.connecting ? "Connecting…" : "Connect to this computer"}</button>
+    {/if}
+  </div>
+  {#if conn.error && !open && conn.mode !== "live"}<p class="panel warn" role="alert">{conn.error}</p>{/if}
   {#if open}
     <div class="panel" id="conn-panel">
       {#if conn.mode === "live"}
@@ -65,6 +71,9 @@
     border: 1px solid var(--line); border-radius: 99px; background: var(--surface); color: var(--muted); cursor: pointer;
     box-shadow: 0 8px 24px -12px rgb(0 0 0 / 0.6);
   }
+  .row { display: flex; gap: var(--space-2); flex-wrap: wrap; }
+  .pill.connect { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 700; }
+  .pill:disabled { opacity: 0.6; cursor: progress; }
   .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--faint); }
   .live .pill { color: var(--fg); border-color: color-mix(in srgb, var(--good) 50%, var(--line)); }
   .live .dot { background: var(--good); box-shadow: 0 0 0 3px color-mix(in srgb, var(--good) 25%, transparent); }

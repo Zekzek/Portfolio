@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { coverage, proxyFor, proxyHistory, proxyKey } from "../src/lib/proxies";
-import type { Proxies } from "../src/lib/types";
+import { coverage, deckArt, proxyFor, proxyHistory, proxyKey } from "../src/lib/proxies";
+import type { Cards, Deck, Proxies } from "../src/lib/types";
 
 // Must match DeckSite/proxies.py key(): the Python side writes the keys, the page looks them up.
 describe("proxy keys", () => {
@@ -34,5 +34,18 @@ describe("proxy lookup", () => {
       ["ink", ["v7", "v6"]], ["neon", ["v1"]],
     ]);
     expect(coverage(proxies, "ink", ["Fabricate", "Anger", "Sol Ring"])).toBe(2);
+  });
+});
+
+describe("deck art", () => {
+  const cards = { Fabricate: { name: "Fabricate", art_crop: "/crop-f" }, Anger: { name: "Anger", art_crop: "/crop-a" } } as Cards;
+  const deck = (commander: string, proxySet: string | null) => ({ commanderNames: [commander], proxySet }) as Deck;
+  it("uses the commander from the deck's proxy set", () => {
+    expect(deckArt(deck("Fabricate", "ink"), cards, proxies)).toEqual({ url: "/f7", proxy: true });
+  });
+  it("falls back to the original art when the set lacks the commander or the deck has no set", () => {
+    expect(deckArt(deck("Anger", "neon"), cards, proxies)).toEqual({ url: "/crop-a", proxy: false });
+    expect(deckArt(deck("Anger", null), cards, proxies)).toEqual({ url: "/crop-a", proxy: false });
+    expect(deckArt(deck("Anger", "ink"), cards, null)).toEqual({ url: "/crop-a", proxy: false });
   });
 });

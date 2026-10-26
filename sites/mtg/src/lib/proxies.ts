@@ -1,5 +1,5 @@
 // Proxy sets (MTG/Proxies/<set>/v<N>): each card shows its newest version in the chosen set.
-import type { Proxies } from "./types";
+import type { Cards, Deck, Proxies } from "./types";
 
 /** Same as DeckSite/proxies.py key(): front face, letters and digits only, lowercase. */
 export function proxyKey(name: string): string {
@@ -24,4 +24,14 @@ export function proxyHistory(proxies: Proxies | null, name: string) {
 export function coverage(proxies: Proxies | null, set: string, names: string[]): number {
   const cards = proxies?.cards[set] ?? {};
   return names.filter((n) => cards[proxyKey(n)]).length;
+}
+
+/** A deck's picture: its first commander from the deck's proxy set, or the original card's art. */
+export function deckArt(deck: Deck, cards: Cards, proxies: Proxies | null): { url: string; proxy: boolean } | null {
+  const name = deck.commanderNames[0];
+  if (!name) return null;
+  const p = deck.proxySet ? proxyFor(proxies, deck.proxySet, name) : undefined;
+  if (p) return { url: p.url, proxy: true };
+  const crop = cards[name]?.art_crop;
+  return crop ? { url: crop, proxy: false } : null;
 }

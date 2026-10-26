@@ -142,7 +142,7 @@
 {:else if route.view === "search"}
   <SearchView q={route.q} {decks} {cards} {art} openCard={route.card} onArtChanged={reloadArt} />
 {:else}
-  <DeckList {decks} {cards} email={auth.signedIn ? auth.email : ""} />
+  <DeckList {decks} {cards} {proxies} email={auth.signedIn ? auth.email : ""} />
 {/if}
 
 <style>
