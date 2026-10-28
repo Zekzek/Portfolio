@@ -1,5 +1,5 @@
 <script lang="ts">
-  // Proxy art for one card: every DeckGen style, every attempt, pick one, queue a reroll for tonight.
+  // Proxy art for one card: every DeckGen style, every attempt, pick one, queue a reroll for the next run you start.
   import { pickAttempt, queueReroll, unqueueReroll } from "../lib/api";
   import { editable } from "../lib/connection.svelte";
   import type { DeckArt, StyleArt } from "../lib/types";
@@ -51,14 +51,14 @@
         {#if current.composed}
           <img src={current.composed} alt={`${cardName} proxy in ${styleId}`} class="composed" />
         {:else}
-          <p class="dim">Not rendered yet. It's made when you pick an attempt, or by the nightly run.</p>
+          <p class="dim">Not rendered yet. It's made when you pick an attempt, or after a run.</p>
         {/if}
       </div>
 
       <div class="attempts">
         <p class="eyebrow">Attempts{#if editable()} <span class="dim">· click one to use it</span>{/if}</p>
         {#if current.attempts.length === 0}
-          <p class="dim">No art in this style yet. The nightly run makes the first attempt.</p>
+          <p class="dim">No art in this style yet. Use Generate proxies (in the Proxies panel) to make the first attempt.</p>
         {:else}
           <ul role="list">
             {#each current.attempts as a (a.n)}
@@ -78,19 +78,19 @@
 
         <div class="reroll">
           {#if !editable()}
-            {#if current.queued !== null}<p class="queued">Queued for tonight{current.queued ? `: “${current.queued}”` : ""}.</p>{/if}
+            {#if current.queued !== null}<p class="queued">Queued for the next run{current.queued ? `: “${current.queued}”` : ""}.</p>{/if}
             <p class="dim">Connect to your PC (bottom left) to pick attempts or queue rerolls.</p>
           {:else if current.queued !== null}
-            <p class="queued">Queued for tonight{current.queued ? `: “${current.queued}”` : ""}.</p>
-            <button class="btn" disabled={busy} onclick={() => act("Removed from tonight's queue.", () => unqueueReroll(target))}>Cancel reroll</button>
+            <p class="queued">Queued for the next run{current.queued ? `: “${current.queued}”` : ""}.</p>
+            <button class="btn" disabled={busy} onclick={() => act("Removed from the queue.", () => unqueueReroll(target))}>Cancel reroll</button>
           {:else}
-            <label for="reroll-note" class="eyebrow">Reroll tonight</label>
+            <label for="reroll-note" class="eyebrow">Reroll</label>
             <div class="row">
               <input id="reroll-note" type="text" bind:value={note} placeholder="Optional note, e.g. more fire, less smoke" />
               <button class="btn primary" disabled={busy}
-                onclick={() => act("Queued. The nightly run will make a new attempt.", () => queueReroll(target, note)).then(() => (note = ""))}>Queue</button>
+                onclick={() => act("Queued. The next Generate proxies run for this card makes a new attempt.", () => queueReroll(target, note)).then(() => (note = ""))}>Queue</button>
             </div>
-            <p class="dim">Queuing doesn't spend anything. The nightly run makes new art{art.nightlyCap ? `, up to ${art.nightlyCap} images a night` : ""}.</p>
+            <p class="dim">Queuing doesn't spend anything. A queued card gets a new attempt when you include it in Generate proxies (its cost is shown first).</p>
           {/if}
         </div>
 

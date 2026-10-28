@@ -2,10 +2,20 @@
   // Proxy status for a deck (DeckGen), or a way to start one.
   import { startManifest } from "../lib/api";
   import { editable } from "../lib/connection.svelte";
+  import { gen, onRunFinished, refreshJob } from "../lib/genjob.svelte";
   import { href } from "../lib/route";
-  import type { Deck, DeckArt } from "../lib/types";
+  import type { Deck, DeckArt, Proxies } from "../lib/types";
+  import GenerateProxies from "./GenerateProxies.svelte";
 
-  let { deck, art, onDataChanged }: { deck: Deck; art?: DeckArt; onDataChanged: () => Promise<void> } = $props();
+  let { deck, art, proxies = null, onDataChanged }: {
+    deck: Deck; art?: DeckArt; proxies?: Proxies | null; onDataChanged: () => Promise<void>;
+  } = $props();
+
+  // Generating on this PC: the form, and the run's progress here too.
+  let generating = $state(false);
+  $effect(() => { if (editable()) refreshJob(); });
+  $effect(() => onRunFinished(() => { onDataChanged(); }));
+  const run = $derived(gen.job?.state === "running" ? gen.job : null);
 
   let busy = $state(false);
   let message = $state<{ ok: boolean; text: string } | null>(null);
@@ -41,7 +51,7 @@
     <dl>
       <div><dt>Cards with art</dt><dd class="mono">{withArt} / {names.length}</dd></div>
       <div><dt>Printed cards</dt><dd class="mono">{printed} / {names.length}</dd></div>
-      <div><dt>Queued for tonight</dt><dd class="mono">{queued.length}{art.nightlyCap ? ` (cap ${art.nightlyCap})` : ""}</dd></div>
+      <div><dt>Queued rerolls</dt><dd class="mono">{queued.length}</dd></div>
     </dl>
     {#if queued.length}
       <ul class="small" role="list">
@@ -60,12 +70,19 @@
   {:else if !editable()}
     <p class="small">No proxy art for this deck yet.</p>
   {:else if deck.list}
-    <p class="small">No DeckGen file for this deck yet. Starting one lists its cards (without basic lands) with a starter style to edit. Nothing is generated or spent until you run DeckGen with it.</p>
-    <button class="btn" disabled={busy} onclick={start}>{busy ? "Creating…" : "Start proxies for this deck"}</button>
+    <p class="small">No DeckGen art for this deck yet.</p>
   {/if}
+  {#if run}
+    <p class="small run" role="status">Generating{run.deck !== deck.id ? ` for ${run.deck}` : ""}: <span class="mono">{run.done ?? 0}/{run.total}</span>{run.current ? ` · ${run.current}` : ""}</p>
+  {/if}
+  {#if editable() && deck.list}
+    <button class="btn" onclick={() => (generating = true)}>{run && run.deck === deck.id ? "Show progress" : "Generate proxies…"}</button>
+    {#if !art}<button class="link-btn small" disabled={busy} onclick={start}>{busy ? "Creating…" : "or just create its DeckGen file to edit by hand"}</button>{/if}
+  {/if}
+  {#if generating}<GenerateProxies {deck} {proxies} onClose={() => (generating = false)} />{/if}
   {#if message}
     <p class="small msg" class:err={!message.ok} role="status">
-      {message.text}{#if message.ok}. Edit its style prompt, then run <code>python deckgen.py decks/{deck.id}.yaml run</code> in DeckGen.{/if}
+      {message.text}{#if message.ok}. Edit its style prompt there, or use Generate proxies.{/if}
     </p>
   {/if}
 </section>
@@ -85,5 +102,7 @@
   .btn:hover:not(:disabled) { border-color: var(--accent); }
   .btn:disabled { opacity: 0.6; cursor: progress; }
   .msg { color: var(--good); }
+  .run { color: var(--accent); }
+  .link-btn { font: inherit; border: 0; background: none; padding: 0; color: var(--muted); cursor: pointer; text-decoration: underline; text-underline-offset: 0.2em; text-align: left; }
   .msg.err { color: var(--warn); }
 </style>

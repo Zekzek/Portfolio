@@ -5,10 +5,10 @@
 //   snapshot  the hosted page reads the last upload from the private bucket (read-only)
 import { LOCAL_SERVER, authHeaders, conn } from "./connection.svelte";
 import { getJson as bucketJson, signAll } from "./hosted";
-import type { Art, Cards, Deck, EditOp, HistoryEntry, Proxies } from "./types";
+import type { Art, Cards, Deck, EditOp, GenJob, GenPlan, GenRequest, GenThemes, HistoryEntry, Proxies } from "./types";
 
 /** "/art/...", "/img?u=..." from this PC's server, made absolute when the hosted page is talking to it. */
-const SERVER_LINK = /^\/(img\?|art\/|proxy\/|print\/|proxies\/)/;
+const SERVER_LINK = /^\/(img\?|art\/|proxy\/|print\/|proxies\/|deckgen-img\/)/;
 function absolutize<T>(data: T): T {
   if (conn.mode !== "live") return data;
   return JSON.parse(JSON.stringify(data), (_k, v) => (typeof v === "string" && SERVER_LINK.test(v) ? LOCAL_SERVER + v : v));
@@ -74,6 +74,12 @@ export interface EditResult { version: number; done: string[]; newCards: boolean
 /** Change a deck list. `version` is the one the page shows; the server refuses if it's out of date. */
 export const editDeck = (deck: string, version: number, ops: EditOp[], why = "") =>
   post<EditResult>("deck/edit", { deck, version, ops, why });
+
+// Generating proxies (this PC only). Only startGeneration spends anything, and only with a plan's token.
+export const loadGenThemes = (deck: string) => serverJson<GenThemes>(`/api/deckgen/themes?deck=${encodeURIComponent(deck)}`);
+export const planGeneration = (req: GenRequest) => post<GenPlan>("deckgen/plan", { ...req });
+export const startGeneration = (req: GenRequest, token: string) => post<GenJob>("deckgen/generate", { ...req, confirm: token });
+export const loadGenJob = () => serverJson<GenJob>("/api/deckgen/job");
 
 export const revertDeck = (deck: string, version: number, to: number, why = "") =>
   post<EditResult>("deck/revert", { deck, version, to, why });

@@ -241,7 +241,7 @@
         </div>
         <Stats {curve} {types} {pips} />
         <HistoryPanel deckId={deck.id} version={deck.version} {busy} onUndo={undoTo} />
-        <ProxyPanel {deck} {art} {onDataChanged} />
+        <ProxyPanel {deck} {art} {proxies} {onDataChanged} />
       </aside>
 
       <main class="grid-area">

@@ -121,3 +121,51 @@ export interface Proxies {
   sets: ProxySet[];
   cards: Record<string, Record<string, { v: string; url: string }[]>>;
 }
+
+// ---- Generating proxies from the page (DeckSite/proxygen.py) ----
+export interface GenRef { path: string; url: string | null; name?: string }
+export interface GenTheme {
+  key: string; // "<manifest>:<style>"
+  manifest: string;
+  style: string;
+  deck: string;
+  inThisDeck: boolean;
+  proxySet: string | null;
+  frame: string;
+  prompt: string;
+  references: GenRef[];
+}
+export interface GenCost {
+  backend: string; model: string; perImage: number | null; unit: string | null; cap: number; ready: boolean; problem: string;
+}
+export interface GenThemes {
+  deck: string;
+  manifest: string | null;
+  themes: GenTheme[];
+  frames: { id: string; name: string; preview: string | null }[];
+  references: GenRef[];
+  cards: string[];
+  cost: GenCost;
+  art: Record<string, string>; // art ideas already in the manifest
+}
+export interface GenRequest {
+  deck: string;
+  theme: { key: string } | { new: { name: string; frame: string; prompt: string; references: string[] } };
+  cards: string[];
+  newAttempt: boolean;
+  art: Record<string, string>;
+}
+export interface GenPlan {
+  deck: string; manifest: string; style: string; proxySet: string | null;
+  newSet: { id: string; name: string } | null;
+  run: { name: string; why: string }[];
+  later: { name: string; why: string }[];
+  skipped: { name: string; why: string }[];
+  images: number; credits: number | null; cost: GenCost; writes: string[]; token: string;
+}
+export interface GenJob {
+  state: "idle" | "running" | "done" | "done_with_errors" | "failed";
+  deck?: string; style?: string; proxySet?: string; step?: string;
+  total?: number; done?: number; failed?: number; current?: string | null;
+  log?: string[]; started?: string; finished?: string | null; error?: string | null; logFile?: string;
+}
