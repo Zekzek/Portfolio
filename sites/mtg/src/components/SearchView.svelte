@@ -1,13 +1,13 @@
 <script lang="ts">
   import { href } from "../lib/route";
   import { searchDecks } from "../lib/search";
-  import type { Art, Cards, Deck } from "../lib/types";
+  import type { Art, Cards, Deck, Proxies } from "../lib/types";
   import CardDialog from "./CardDialog.svelte";
   import CardTile from "./CardTile.svelte";
   import ThemeToggleButton from "./ThemeToggleButton.svelte";
 
-  let { q, decks, cards, art, openCard, onArtChanged }: {
-    q: string; decks: Deck[]; cards: Cards; art: Art; openCard?: string; onArtChanged: () => Promise<void>;
+  let { q, decks, cards, art, proxies = null, openCard, onArtChanged }: {
+    q: string; decks: Deck[]; cards: Cards; art: Art; proxies?: Proxies | null; openCard?: string; onArtChanged: () => Promise<void>;
   } = $props();
 
   let text = $state(q);
@@ -58,7 +58,7 @@
 </div>
 
 {#if openCard && owner}
-  <CardDialog name={openCard} card={cards[openCard]} deck={owner} {decks} art={art[owner.id]}
+  <CardDialog name={openCard} card={cards[openCard]} deck={owner} {decks} art={art[owner.id]} {proxies} currentSet={owner.proxySet ?? ""}
     closeHref={href({ view: "search", q: text.trim() })} {onArtChanged} />
 {/if}
 

@@ -1,7 +1,7 @@
 <script lang="ts">
   import { decksWith } from "../lib/deck";
   import { href } from "../lib/route";
-  import { proxyHistory } from "../lib/proxies";
+  import { activeSet, cardVersions } from "../lib/proxies";
   import type { Card, Deck, DeckArt, EditOp, Proxies } from "../lib/types";
   import Mana from "./Mana.svelte";
   import OracleText from "./OracleText.svelte";
@@ -26,11 +26,22 @@
   }
 
   const faces = $derived(card?.faces?.length ? card.faces : null);
-  const image = $derived(faces ? faces[face]?.image : card?.image);
+  const official = $derived(faces ? faces[face]?.image : card?.image);
   const usedIn = $derived(decksWith(name, decks));
   const cardArt = $derived(art?.cards[name]);
-  // Proxy versions of this card, the set being shown first.
-  const versions = $derived(proxyHistory(proxies, name).sort((a, b) => Number(b.set.id === currentSet) - Number(a.set.id === currentSet)));
+  // Every picture of the card: this deck's set (all versions), the official card, one per other set.
+  const set = $derived(activeSet(currentSet, deck.proxySet));
+  const setName = $derived(proxies?.sets.find((s) => s.id === set)?.name ?? set ?? "");
+  const versions = $derived(cardVersions(proxies, name, set, card?.image ?? faces?.[0]?.image ?? null));
+  // The big picture: the one in use (the deck's proxy if it has one), or a version you clicked.
+  let picked = $state<string | null>(null);
+  $effect(() => { void name; picked = null; }); // a new card starts on its version in use
+  const shown = $derived(versions.find((v) => v.key === picked) ?? versions.find((v) => v.inUse) ?? null);
+  /** Under its own heading a version needs less: "v7", or the official card's printing. */
+  const short = (v: { kind: string; label: string }) =>
+    v.kind === "deck" ? v.label.replace(`${setName} `, "") : v.kind === "official" ? (card?.set_name ?? v.label) : v.label;
+  const showOfficial = $derived(!shown || shown.kind === "official");
+  const image = $derived(showOfficial ? official : shown!.url);
   // This card's entry in the deck (for its note), if the deck has it.
   const entry = $derived(deck.commanders.find((c) => c.name === name) ?? deck.categories.flatMap((c) => c.cards).find((c) => c.name === name));
   const inCategory = $derived(deck.categories.find((c) => c.cards.some((e) => e.name === name))?.name);
@@ -53,8 +64,9 @@
 
     <div class="top">
       <div class="picture">
-        {#if image}<img src={image} alt={faces ? faces[face].name : name} />{:else}<div class="noimg">{name}</div>{/if}
-        {#if faces}
+        {#if image}<img src={image} alt={showOfficial && faces ? faces[face].name : name} />{:else}<div class="noimg">{name}</div>{/if}
+        {#if shown}<p class="shown mono">{shown.label}{shown.inUse ? " · in use" : ""}</p>{/if}
+        {#if faces && showOfficial}
           <button class="btn flip" onclick={() => (face = (face + 1) % faces.length)}>Show {faces[(face + 1) % faces.length].name}</button>
         {/if}
       </div>
@@ -104,21 +116,30 @@
       </div>
     </div>
 
-    {#if versions.length}
+    {#if versions.length > 1}
       <section class="versions" aria-labelledby="versions-h">
-        <h3 id="versions-h">Proxy versions</h3>
-        {#each versions as s (s.set.id)}
-          <div class="vset">
-            <p class="eyebrow">{s.set.name}{s.set.id === currentSet ? " · showing" : ""}</p>
-            <ul role="list">
-              {#each s.versions as v, i (v.v)}
-                <li class:win={i === 0}>
-                  <a href={v.url} target="_blank" rel="noopener"><img src={v.url} alt={`${name}, ${s.set.name} ${v.v}`} loading="lazy" /></a>
-                  <span class="mono">{v.v}{i === 0 ? " · in use" : ""}</span>
-                </li>
-              {/each}
-            </ul>
-          </div>
+        <h3 id="versions-h">Versions</h3>
+        {#each [
+          { kind: "deck", title: `In this deck · ${setName}` },
+          { kind: "official", title: "Official card" },
+          { kind: "other", title: "Other styles" },
+        ] as part (part.kind)}
+          {@const items = versions.filter((v) => v.kind === part.kind)}
+          {#if items.length}
+            <div class="vset">
+              <p class="eyebrow">{part.title}</p>
+              <ul role="list">
+                {#each items as v (v.key)}
+                  <li class:win={v.inUse} class:on={shown?.key === v.key}>
+                    <button class="thumb" onclick={() => (picked = v.key)} aria-pressed={shown?.key === v.key} title="Show this one above">
+                      <img src={v.url} alt={`${name}, ${v.label}`} loading="lazy" />
+                    </button>
+                    <span class="mono">{short(v)}{v.inUse ? " · in use" : ""}</span>
+                  </li>
+                {/each}
+              </ul>
+            </div>
+          {/if}
         {/each}
       </section>
     {/if}
@@ -170,6 +191,10 @@
   .vset li { display: flex; flex-direction: column; gap: 4px; }
   .vset img { width: 100%; aspect-ratio: 63 / 88; object-fit: cover; border-radius: 4.6% / 3.3%; border: 2px solid transparent; }
   .vset li.win img { border-color: var(--good); }
+  .vset li.on img { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .thumb { all: unset; cursor: pointer; display: block; border-radius: 4.6% / 3.3%; }
+  .thumb:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+  .shown { font-size: var(--step--2); color: var(--muted); text-align: center; }
   .vset span { font-size: var(--step--2); color: var(--muted); }
   .vset li.win span { color: var(--good); }
   .no-proxy { color: var(--faint); font-size: var(--step--1); border-top: 1px solid var(--line); padding-top: var(--space-4); }

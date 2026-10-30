@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { commanderArts, coverage, deckArt, proxyFor, proxyHistory, proxyKey } from "../src/lib/proxies";
+import { activeSet, cardVersions, commanderArts, coverage, deckArt, proxyFor, proxyHistory, proxyKey } from "../src/lib/proxies";
 import type { Cards, Deck, Proxies } from "../src/lib/types";
 
 // Must match DeckSite/proxies.py key(): the Python side writes the keys, the page looks them up.
@@ -55,5 +55,36 @@ describe("commander arts", () => {
     const cards = { Fabricate: { name: "Fabricate", art_crop: "/crop-f" }, Anger: { name: "Anger", art_crop: "/crop-a" }, Nope: { name: "Nope" } } as Cards;
     const deck = { commanderNames: ["Fabricate", "Nope", "Anger"], proxySet: "neon" } as Deck;
     expect(commanderArts(deck, cards, proxies).map((a) => a.url)).toEqual(["/nf1", "/crop-a"]);
+  });
+});
+
+describe("card dialog versions", () => {
+  const ps: Proxies = {
+    sets: [
+      { id: "ink", name: "Ink", description: "", versions: ["v7", "v6"] },
+      { id: "neon", name: "Neon", description: "", versions: ["v2", "v1"] },
+      { id: "glass", name: "Glass", description: "", versions: ["v1"] },
+    ],
+    cards: {
+      ink: { anger: [{ v: "v7", url: "/i7" }, { v: "v6", url: "/i6" }] },
+      neon: { anger: [{ v: "v2", url: "/n2" }, { v: "v1", url: "/n1" }] },
+      glass: {},
+    },
+  };
+  it("lists this deck's set (all versions), then the official card, then one per other set", () => {
+    expect(cardVersions(ps, "Anger", "ink", "/scry").map((v) => [v.label, v.kind, v.inUse])).toEqual([
+      ["Ink v7", "deck", true], ["Ink v6", "deck", false], ["Original card", "official", false], ["Neon v2", "other", false],
+    ]);
+  });
+  it("uses the official card when the deck's set has no version", () => {
+    expect(cardVersions(ps, "Anger", "glass", "/scry").map((v) => [v.label, v.inUse])).toEqual([
+      ["Original card", true], ["Ink v7", false], ["Neon v2", false],
+    ]);
+    expect(cardVersions(ps, "Sol Ring", null, null)).toEqual([]);
+  });
+  it("active set: the one shown, else the deck's default", () => {
+    expect(activeSet("neon", "ink")).toBe("neon");
+    expect(activeSet("original", "ink")).toBe("ink");
+    expect(activeSet("", null)).toBe(null);
   });
 });

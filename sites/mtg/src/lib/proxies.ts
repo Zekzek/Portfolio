@@ -46,3 +46,32 @@ export function deckArt(deck: Deck, cards: Cards, proxies: Proxies | null): Card
 export function commanderArts(deck: Deck, cards: Cards, proxies: Proxies | null): CardArt[] {
   return deck.commanderNames.map((n) => cardArt(n, deck, cards, proxies)).filter((a): a is CardArt => !!a);
 }
+
+export interface CardVersion {
+  key: string; // unique within the list
+  kind: "deck" | "official" | "other";
+  label: string; // "Ink v7", "Original card", "Neon v1"
+  url: string;
+  inUse: boolean; // the image this deck shows for the card
+}
+
+/** The set a deck's card dialog treats as active: the one being shown, else the deck's default. */
+export function activeSet(currentSet: string, deckSet?: string | null): string | null {
+  return currentSet && currentSet !== "original" ? currentSet : deckSet || null;
+}
+
+/** Every picture of a card, in the dialog's order: each version in the deck's set (newest first, the
+ *  first one in use), then the official card, then the newest version from each other set. */
+export function cardVersions(proxies: Proxies | null, name: string, set: string | null, official: string | null): CardVersion[] {
+  const out: CardVersion[] = [];
+  const hist = proxyHistory(proxies, name);
+  const own = hist.find((h) => h.set.id === set);
+  own?.versions.forEach((v, i) => out.push({ key: `${own.set.id}:${v.v}`, kind: "deck", label: `${own.set.name} ${v.v}`, url: v.url, inUse: i === 0 }));
+  if (official) out.push({ key: "official", kind: "official", label: "Original card", url: official, inUse: !own });
+  for (const h of hist) {
+    if (h.set.id === set) continue;
+    const v = h.versions[0];
+    out.push({ key: `${h.set.id}:${v.v}`, kind: "other", label: `${h.set.name} ${v.v}`, url: v.url, inUse: false });
+  }
+  return out;
+}
