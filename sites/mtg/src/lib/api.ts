@@ -15,10 +15,14 @@ function absolutize<T>(data: T): T {
   return JSON.parse(JSON.stringify(data), (_k, v) => (typeof v === "string" && SERVER_LINK.test(v) ? LOCAL_SERVER + v : v));
 }
 
+const OUTDATED = "Deck Shelf on your PC is older than this page. Restart it (Ctrl+C, then python DeckSite/server.py) and try again.";
+
 async function serverJson<T>(path: string): Promise<T> {
   const base = conn.mode === "live" ? LOCAL_SERVER : "";
   const r = await fetch(base + path, { cache: "no-store", headers: await authHeaders() });
   if (!r.ok) throw new Error(`${path}: ${r.status} ${(await r.text()).slice(0, 200)}`);
+  // An older server answers routes it doesn't know with the page itself.
+  if (!(r.headers.get("Content-Type") ?? "").includes("json")) throw new Error(OUTDATED);
   return absolutize(await r.json());
 }
 
