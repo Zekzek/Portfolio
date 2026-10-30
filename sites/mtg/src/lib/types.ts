@@ -37,6 +37,7 @@ export interface Deck {
   unknown: string[];
   proxyOnly: string[]; // in the DeckGen manifest but not in this list
   drift: { onlyInDoc: string[]; onlyInList: string[] } | null; // .md Deck List vs .txt; null = nothing to compare
+  scores?: Record<string, number>; // card -> Total from the doc's "Card Scores" tables
 }
 
 export interface Face {

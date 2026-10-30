@@ -1,8 +1,11 @@
 // Grouping, sorting and stats for a deck view.
 import type { Card, Cards, Deck, DeckEntry } from "./types";
 
-export type GroupBy = "category" | "type" | "cmc" | "color";
-export type SortBy = "cmc" | "name";
+export type GroupBy = "category" | "type" | "cmc" | "color" | "keyword";
+export type SortBy = "cmc" | "name" | "score" | "power" | "toughness";
+
+/** Label for cards with no keyword when grouping by keyword. */
+export const NO_KEYWORD = "No keywords";
 
 /** Each deck's pile of cards set aside (DeckSite deckstore.SIDEBOARD): not counted, not exported. */
 export const SIDEBOARD = "Sideboard";
@@ -50,9 +53,29 @@ export function colorLabel(key: string): string {
 
 const copies = (entries: DeckEntry[]) => entries.reduce((n, e) => n + e.count, 0);
 
-export function sortEntries(entries: DeckEntry[], cards: Cards, by: SortBy): DeckEntry[] {
+/** "3" -> 3, "1+*" -> 1, "*" -> 0; null when the card has none (not a creature). */
+export function statValue(v?: string | null): number | null {
+  if (v == null || v === "") return null;
+  const m = /-?\d+(\.\d+)?/.exec(v);
+  return m ? Number(m[0]) : 0;
+}
+
+function stat(card: Card | undefined, key: "power" | "toughness"): number | null {
+  return statValue(card?.[key]);
+}
+
+/** Sort a group. Score, power and toughness go highest first; cards without one go last.
+ *  Ties fall back to mana value, then name. */
+export function sortEntries(entries: DeckEntry[], cards: Cards, by: SortBy, scores: Record<string, number> = {}): DeckEntry[] {
+  const high = (v: number | null | undefined) => (v == null ? -Infinity : v);
+  const value = (n: string): number | null | undefined =>
+    by === "score" ? scores[n] : by === "power" ? stat(cards[n], "power") : by === "toughness" ? stat(cards[n], "toughness") : undefined;
   return [...entries].sort((a, b) => {
-    if (by === "cmc") {
+    if (by === "score" || by === "power" || by === "toughness") {
+      const d = high(value(b.name)) - high(value(a.name));
+      if (d) return d;
+    }
+    if (by !== "name") {
       const d = (cards[a.name]?.cmc ?? 99) - (cards[b.name]?.cmc ?? 99);
       if (d) return d;
     }
@@ -67,7 +90,20 @@ export function mainEntries(deck: Deck): DeckEntry[] {
 
 export function groupDeck(deck: Deck, cards: Cards, by: GroupBy, sort: SortBy): Group[] {
   let groups: Group[];
-  if (by === "category") {
+  if (by === "keyword") {
+    // A card shows under each of its keywords (a Flying, Haste card is in both groups).
+    const map = new Map<string, DeckEntry[]>();
+    for (const e of mainEntries(deck)) {
+      const kws = cards[e.name]?.keywords?.length ? cards[e.name]!.keywords! : [NO_KEYWORD];
+      for (const k of new Set(kws)) map.set(k, [...(map.get(k) ?? []), e]);
+    }
+    const keys = [...map.keys()].filter((k) => k !== NO_KEYWORD)
+      .sort((a, b) => map.get(b)!.length - map.get(a)!.length || a.localeCompare(b));
+    if (map.has(NO_KEYWORD)) keys.push(NO_KEYWORD);
+    groups = keys.map((k) => ({ key: k, label: k, entries: map.get(k)!, count: 0 }));
+    const side = deck.categories.find(isSideboard);
+    if (side?.cards.length) groups.push({ key: SIDEBOARD, label: `${SIDEBOARD} · set aside, not counted`, entries: side.cards, count: 0, excluded: true, sideboard: true });
+  } else if (by === "category") {
     groups = deck.categories.map((c) => ({
       key: c.name, entries: c.cards, count: 0, excluded: !!c.excluded, sideboard: isSideboard(c),
       label: isSideboard(c) ? `${c.name} · set aside, not counted` : c.excluded ? `${c.name} · reference only` : c.name,
@@ -93,7 +129,7 @@ export function groupDeck(deck: Deck, cards: Cards, by: GroupBy, sort: SortBy): 
     const side = deck.categories.find(isSideboard);
     if (side?.cards.length) groups.push({ key: SIDEBOARD, label: `${SIDEBOARD} · set aside, not counted`, entries: side.cards, count: 0, excluded: true, sideboard: true });
   }
-  return groups.map((g) => ({ ...g, entries: sortEntries(g.entries, cards, sort), count: copies(g.entries) }));
+  return groups.map((g) => ({ ...g, entries: sortEntries(g.entries, cards, sort, deck.scores), count: copies(g.entries) }));
 }
 
 /** Nonland cards per mana value, 0 through 7+. */

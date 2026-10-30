@@ -1,8 +1,9 @@
 <script lang="ts">
   import type { Card, DeckEntry } from "../lib/types";
 
-  let { entry, card, image, proxy = false, original = false, href }: {
-    entry: DeckEntry; card?: Card; image: string | null; proxy?: boolean; original?: boolean; href: string;
+  let { entry, card, image, proxy = false, original = false, badge = null, badgeTitle = "", href }: {
+    entry: DeckEntry; card?: Card; image: string | null; proxy?: boolean; original?: boolean;
+    badge?: string | null; badgeTitle?: string; href: string;
   } = $props();
 </script>
 
@@ -16,6 +17,7 @@
     </span>
   {/if}
   {#if entry.count > 1}<span class="count mono">×{entry.count}</span>{/if}
+  {#if badge !== null}<span class="badge mono" title={badgeTitle}>{badge}</span>{/if}
   {#if original}<span class="orig mono" title="No proxy in this set yet: showing the original card">original</span>{/if}
   {#if entry.note}<span class="note-mark" aria-label={`Note: ${entry.note}`}>✎</span>{/if}
 </a>
@@ -35,6 +37,11 @@
   .missing { position: absolute; inset: 0; padding: var(--space-3); display: flex; flex-direction: column; gap: var(--space-1); border: 1px dashed var(--line); border-radius: inherit; color: var(--fg); }
   .missing-name { font-weight: 700; font-size: var(--step--1); }
   .missing-type { font-size: var(--step--2); color: var(--muted); }
+  .badge {
+    position: absolute; top: 3%; left: 5%;
+    background: color-mix(in srgb, var(--bg) 88%, transparent); color: var(--accent); font-weight: 700;
+    font-size: var(--step--1); padding: 0.05rem 0.4rem; border-radius: var(--radius-s);
+  }
   .orig {
     position: absolute; top: 3%; right: 5%;
     background: color-mix(in srgb, var(--bg) 85%, transparent); color: var(--muted);

@@ -125,3 +125,35 @@ describe("sideboard", () => {
     expect(manaCurve(withSide, cards)).toEqual(manaCurve(deck, cards));
   });
 });
+
+describe("keyword grouping and new sorts", () => {
+  const kcards: Cards = {
+    ...cards,
+    "Scute Mob": { ...cards["Scute Mob"], keywords: ["Trample"], power: "1", toughness: "1" },
+    "Hornet Nest": { ...cards["Hornet Nest"], keywords: ["Defender", "Flying"], power: "0", toughness: "2" },
+    "Ulamog": { ...cards["Ulamog"], keywords: ["Flying", "Annihilator"], power: "10", toughness: "10" },
+    "Bonecrusher Giant": { ...cards["Bonecrusher Giant"], power: "4", toughness: "3" },
+    "Liquimetal Torque": { ...cards["Liquimetal Torque"], power: "*", toughness: "1+*" },
+  };
+  it("puts a card under each keyword, biggest groups first, no-keyword cards last", () => {
+    const g = groupDeck(deck, kcards, "keyword", "name");
+    expect(g.map((x) => x.key)).toEqual(["Flying", "Annihilator", "Defender", "Trample", "No keywords"]);
+    expect(g[0].entries.map((e) => e.name)).toEqual(["Hornet Nest", "Ulamog"]);
+    const side = { ...deck, categories: [...deck.categories, { name: SIDEBOARD, excluded: true, cards: [{ name: "Ulamog", count: 1 }] }] };
+    expect(groupDeck(side, kcards, "keyword", "name").at(-1)!.sideboard).toBe(true);
+  });
+  it("sorts by power or toughness highest first, non-creatures last", () => {
+    const misc = (by: "power" | "toughness") => groupDeck(deck, kcards, "category", by)[2].entries.map((e) => e.name);
+    expect(misc("power")).toEqual(["Ulamog", "Bonecrusher Giant", "Liquimetal Torque", "Grist, the Hunger Tide"]);
+    expect(misc("toughness")).toEqual(["Ulamog", "Bonecrusher Giant", "Liquimetal Torque", "Grist, the Hunger Tide"]);
+  });
+  it("sorts by the doc's score, unscored cards last", () => {
+    const scored = { ...deck, scores: { "Grist, the Hunger Tide": 30, Ulamog: 12 } };
+    expect(groupDeck(scored, kcards, "category", "score")[2].entries.map((e) => e.name))
+      .toEqual(["Grist, the Hunger Tide", "Ulamog", "Liquimetal Torque", "Bonecrusher Giant"]);
+  });
+  it("routes to a deck's history", () => {
+    expect(parseRoute("#/deck/zask/history")).toEqual({ view: "history", deck: "zask" });
+    expect(href({ view: "history", deck: "zask" })).toBe("#/deck/zask/history");
+  });
+});

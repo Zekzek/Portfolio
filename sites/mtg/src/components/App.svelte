@@ -9,6 +9,7 @@
   import DeckList from "./DeckList.svelte";
   import SearchView from "./SearchView.svelte";
   import DeckView from "./DeckView.svelte";
+  import HistoryView from "./HistoryView.svelte";
   import SignIn from "./SignIn.svelte";
 
   let decks = $state<Deck[] | null>(null);
@@ -110,7 +111,7 @@
     }
   });
 
-  const deck = $derived(route.view === "deck" ? decks?.find((d) => d.id === route.deck) : undefined);
+  const deck = $derived(route.view === "deck" || route.view === "history" ? decks?.find((d) => d.id === route.deck) : undefined);
 </script>
 
 {#if notice}<p class="notice" role="status">{notice}</p>{/if}
@@ -137,6 +138,8 @@
   {#key deck.id}
     <DeckView {deck} {decks} {cards} {proxies} art={art[deck.id]} openCard={route.view === "deck" ? route.card : undefined} onArtChanged={reloadArt} onDataChanged={load} />
   {/key}
+{:else if route.view === "history" && deck}
+  <HistoryView {deck} onDataChanged={load} />
 {:else if route.view === "compare"}
   <CompareView ids={route.decks} {decks} {cards} {art} {proxies} openCard={route.card} onArtChanged={reloadArt} />
 {:else if route.view === "search"}

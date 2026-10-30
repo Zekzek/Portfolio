@@ -194,7 +194,7 @@
 
   .group-head { font-family: var(--font-display); font-size: var(--step-1); font-weight: 600; display: flex; align-items: baseline; gap: var(--space-2); padding-bottom: var(--space-2); border-bottom: 1px solid var(--line); margin-bottom: var(--space-3); }
   .dim { color: var(--faint); font-size: var(--step--2); }
-  .grid { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 8.75rem), 1fr)); gap: var(--space-3); }
+  .grid { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 13.125rem), 1fr)); gap: var(--space-3); }
   .tag { font-size: var(--step--2); color: var(--accent); margin-top: 0.3rem; text-align: center; }
 
   .table-wrap { overflow-x: auto; }

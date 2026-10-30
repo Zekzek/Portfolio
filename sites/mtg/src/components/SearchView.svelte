@@ -81,6 +81,6 @@
   .ex { font-size: var(--step--1); border: 0; background: none; color: var(--accent); padding: 0; cursor: pointer; text-decoration: underline; text-underline-offset: 0.2em; }
   .dim { color: var(--faint); display: block; margin-top: var(--space-1); font-size: var(--step--2); }
   .count { color: var(--muted); }
-  .grid { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 9rem), 1fr)); gap: var(--space-4) var(--space-3); }
+  .grid { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 13.5rem), 1fr)); gap: var(--space-4) var(--space-3); }
   .in { font-size: var(--step--2); color: var(--faint); margin-top: 0.3rem; text-align: center; }
 </style>

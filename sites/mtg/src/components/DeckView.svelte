@@ -9,7 +9,6 @@
   import AddCard from "./AddCard.svelte";
   import CardDialog from "./CardDialog.svelte";
   import EditControls from "./EditControls.svelte";
-  import HistoryPanel from "./HistoryPanel.svelte";
   import CardTile from "./CardTile.svelte";
   import Mana from "./Mana.svelte";
   import ProxyPanel from "./ProxyPanel.svelte";
@@ -30,6 +29,31 @@
   // Card images: the deck's proxy set by default (newest version per card), or the original cards.
   let imageSet = $state(deck.proxySet || "original");
   $effect(() => { remember("deck.groupBy", groupBy); remember("deck.sortBy", sortBy); });
+  const hasScores = $derived(Object.keys(deck.scores ?? {}).length > 0);
+  // A deck without scores can't sort by them.
+  const sortUsed = $derived(sortBy === "score" && !hasScores ? "cmc" : sortBy);
+
+  // Collapsed groups, remembered per deck and grouping ("category:Ramp", "keyword:Flying").
+  const collapseKey = `deck.collapsed.${deck.id}`;
+  let collapsed = $state(new Set<string>(JSON.parse(saved(collapseKey, "[]")) as string[]));
+  $effect(() => remember(collapseKey, JSON.stringify([...collapsed])));
+  const groupKey = (k: string) => `${editing ? "category" : groupBy}:${k}`;
+  function toggleGroup(k: string) {
+    const next = new Set(collapsed);
+    next.has(groupKey(k)) ? next.delete(groupKey(k)) : next.add(groupKey(k));
+    collapsed = next;
+  }
+  function setAll(collapse: boolean) {
+    const next = new Set([...collapsed].filter((k) => !groups.some((g) => groupKey(g.key) === k)));
+    if (collapse) groups.forEach((g) => next.add(groupKey(g.key)));
+    collapsed = next;
+  }
+  const allCollapsed = $derived(groups.length > 0 && groups.every((g) => collapsed.has(groupKey(g.key))));
+  /** The number shown on a tile for the chosen sort. */
+  function badgeFor(name: string): string | null {
+    if (sortUsed === "score") return deck.scores?.[name] != null ? String(deck.scores[name]) : "–";
+    return null;
+  }
 
   // Editing: every change goes to the deck store with the version this page shows.
   let editing = $state(false);
@@ -108,7 +132,7 @@
     }
   }
 
-  const groups = $derived(groupDeck(deck, cards, editing ? "category" : groupBy, sortBy));
+  const groups = $derived(groupDeck(deck, cards, editing ? "category" : groupBy, sortUsed));
   const curve = $derived(manaCurve(deck, cards));
   const types = $derived(typeCounts(deck, cards));
   const pips = $derived(pipCounts(deck, cards));
@@ -162,7 +186,7 @@
           {#if forks.length}<span class="forks">Forks: {#each forks as f, i (f.id)}{i ? ", " : ""}<a href={href({ view: "deck", deck: f.id })}>{f.name}</a>{/each}</span>{/if}
         </div>
         {#if deck.note}<p class="note">{deck.note}</p>{/if}
-        <p class="doc mono">Version {deck.version} · updated {new Date(deck.updated).toLocaleString()}{#if deck.doc} · notes: {deck.doc}{/if}</p>
+        <p class="doc mono"><a href={href({ view: "history", deck: deck.id })}>Version {deck.version}</a> · updated {new Date(deck.updated).toLocaleString()}{#if deck.doc} · notes: {deck.doc}{/if}</p>
       </div>
     </div>
   </header>
@@ -204,6 +228,7 @@
               <option value="type">Card type</option>
               <option value="cmc">Mana value</option>
               <option value="color">Color</option>
+              <option value="keyword">Keyword</option>
             </select>
           </label>
           <label>
@@ -211,6 +236,9 @@
             <select bind:value={sortBy} id="sort-by">
               <option value="cmc">Mana value</option>
               <option value="name">Name</option>
+              <option value="score" disabled={!hasScores}>Score{hasScores ? "" : " (no scores in the notes)"}</option>
+              <option value="power">Power</option>
+              <option value="toughness">Toughness</option>
             </select>
           </label>
           <label>
@@ -240,7 +268,12 @@
           {#if deck.list}<button class="btn" onclick={copyList}>{copied ? "Copied" : "Copy for TappedOut"}</button>{/if}
         </div>
         <Stats {curve} {types} {pips} />
-        <HistoryPanel deckId={deck.id} version={deck.version} {busy} onUndo={undoTo} />
+        <div class="version">
+          <a class="mono" href={href({ view: "history", deck: deck.id })} title="Full change history">version {deck.version}</a>
+          {#if deck.version > 1 && editable()}
+            <button class="mini" disabled={busy} onclick={() => undoTo(deck.version - 1)} title="Undo the last change to this list">Undo last</button>
+          {/if}
+        </div>
         <ProxyPanel {deck} {art} {proxies} {onDataChanged} />
       </aside>
 
@@ -286,19 +319,30 @@
             </ul>
           </section>
         {/if}
+        {#if groups.length > 1}
+          <div class="group-tools"><button class="link-btn" onclick={() => setAll(!allCollapsed)}>{allCollapsed ? "Expand all" : "Collapse all"}</button></div>
+        {/if}
         {#each groups as g (g.key)}
+          {@const shut = collapsed.has(groupKey(g.key))}
           <section class="group" class:side={g.sideboard} class:drop-target={dropOn === g.key} role="group" aria-label={g.label}
             ondragover={(e) => editing && dragOver(e, g.key)} ondragleave={(e) => dragLeave(e, g.key)} ondrop={(e) => editing && drop(e, g.key)}>
-            <h2 class="group-head"><span>{g.label}</span> <span class="mono dim">{g.count}</span></h2>
+            <h2 class="group-head">
+              <button class="fold" aria-expanded={!shut} onclick={() => toggleGroup(g.key)}>
+                <span class="chev" aria-hidden="true">{shut ? "▸" : "▾"}</span>
+                <span>{g.label}</span> <span class="mono dim">{g.count}</span>
+              </button>
+            </h2>
+            {#if !shut}
             <ul class="grid" role="list">
               {#each g.entries as e (e.name)}
                 <li draggable={editing && !busy} class:lifted={dragging?.card === e.name}
                   ondragstart={(ev) => dragStart(ev, e.name, g.key)} ondragend={dragEnd}>
-                  <CardTile entry={e} card={cards[e.name]} image={imageFor(e.name)} proxy={isProxy(e.name)} original={isFallback(e.name)} href={cardHref(e.name)} />
+                  <CardTile entry={e} card={cards[e.name]} image={imageFor(e.name)} proxy={isProxy(e.name)} original={isFallback(e.name)} badge={badgeFor(e.name)} badgeTitle="Score from the deck notes" href={cardHref(e.name)} />
                   {#if editing}<EditControls entry={e} category={g.key} categories={categoryNames} {busy} onEdit={(ops) => edit(ops)} />{/if}
                 </li>
               {/each}
             </ul>
+            {/if}
           </section>
         {/each}
         {#if editing && sideboardEmpty}
@@ -423,13 +467,13 @@
   .msg { font-size: var(--step--1); color: var(--good); }
   .msg.err { color: var(--warn); }
   .dim-text { color: var(--faint); font-size: var(--step--1); margin: calc(-1 * var(--space-1)) 0 var(--space-3); }
-  .grid { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 9.75rem), 1fr)); gap: var(--space-3); }
+  .grid { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 14.625rem), 1fr)); gap: var(--space-3); }
 
   @media (max-width: 860px) {
     .layout { grid-template-columns: minmax(0, 1fr); }
     .side { position: static; max-height: none; overflow: visible; }
     .controls { flex-direction: row; flex-wrap: wrap; align-items: end; }
-    .grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 7.5rem), 1fr)); gap: var(--space-2); }
+    .grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 10rem), 1fr)); gap: var(--space-2); }
   }
 
   /* Editing: drag and drop */
@@ -447,4 +491,15 @@
     box-shadow: 0 12px 30px -12px rgb(0 0 0 / 0.7);
   }
   .aside-bar.drop-target { background: color-mix(in srgb, var(--accent) 22%, var(--surface)); }
+
+  /* Sidebar version line, collapsible groups */
+  .version { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); font-size: var(--step--1); }
+  .version a { color: var(--muted); }
+  .mini { font: inherit; font-size: var(--step--2); padding: 0.15rem 0.5rem; border-radius: var(--radius-s); border: 1px solid var(--line); background: var(--surface); color: var(--fg); cursor: pointer; }
+  .mini:hover:not(:disabled) { border-color: var(--accent); }
+  .mini:disabled { opacity: 0.5; cursor: default; }
+  .group-tools { display: flex; justify-content: flex-end; margin-bottom: calc(-1 * var(--space-3)); }
+  .fold { all: unset; cursor: pointer; display: flex; align-items: baseline; gap: var(--space-2); width: 100%; }
+  .fold:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: var(--radius-s); }
+  .chev { font-size: 0.75em; color: var(--faint); width: 1em; }
 </style>
