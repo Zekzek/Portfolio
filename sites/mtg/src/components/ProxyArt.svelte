@@ -3,12 +3,14 @@
   import { pickAttempt, queueReroll, unqueueReroll } from "../lib/api";
   import { editable } from "../lib/connection.svelte";
   import type { DeckArt, StyleArt } from "../lib/types";
+  import ArtPosition from "./ArtPosition.svelte";
 
   let { deckId, cardName, art, cardArt, onArtChanged }: {
     deckId: string; cardName: string; art: DeckArt; cardArt: Record<string, StyleArt>; onArtChanged: () => Promise<void>;
   } = $props();
 
   let styleId = $state(art.activeStyle);
+  let positioning = $state(false);
   let note = $state("");
   let busy = $state(false);
   let message = $state<{ ok: boolean; text: string } | null>(null);
@@ -36,7 +38,7 @@
     <h3 id="proxy-heading">Proxy art</h3>
     <div class="styles" role="tablist" aria-label="DeckGen style">
       {#each art.styles as s (s.id)}
-        <button role="tab" aria-selected={s.id === styleId} class:on={s.id === styleId} onclick={() => { styleId = s.id; message = null; }}>
+        <button role="tab" aria-selected={s.id === styleId} class:on={s.id === styleId} onclick={() => { styleId = s.id; message = null; positioning = false; }}>
           {s.id}{#if s.id === art.activeStyle}<span class="active-dot" title="Active style in the manifest"></span>{/if}
           <span class="mono n">{cardArt[s.id]?.attempts.length ?? 0}</span>
         </button>
@@ -45,6 +47,11 @@
   </div>
 
   {#if current}
+    {#if positioning}
+      <ArtPosition {deckId} style={styleId} card={cardName} onClose={() => (positioning = false)}
+        onSaved={async (msg) => { await onArtChanged(); message = { ok: true, text: "Art position saved. The card was re-rendered and added to its proxy set." }; void msg; }} />
+      {#if message}<p class="msg" class:err={!message.ok} role="status">{message.text}</p>{/if}
+    {/if}
     <div class="body">
       <div class="finished">
         <p class="eyebrow">Printed card</p>
@@ -52,6 +59,9 @@
           <img src={current.composed} alt={`${cardName} proxy in ${styleId}`} class="composed" />
         {:else}
           <p class="dim">Not rendered yet. It's made when you pick an attempt, or after a run.</p>
+        {/if}
+        {#if editable() && current.picked !== null && !positioning}
+          <button class="btn" onclick={() => { positioning = true; message = null; }}>Reposition art</button>
         {/if}
       </div>
 

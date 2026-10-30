@@ -4,11 +4,12 @@
 //   live      the hosted page calls this PC's server directly (http://127.0.0.1:8765) with the sign-in token
 //   snapshot  the hosted page reads the last upload from the private bucket (read-only)
 import { LOCAL_SERVER, authHeaders, conn } from "./connection.svelte";
+import type { ArtPosition, Focus } from "./artpos";
 import { getJson as bucketJson, signAll } from "./hosted";
 import type { Art, Cards, Deck, EditOp, GenJob, GenPlan, GenRequest, GenThemes, HistoryEntry, Proxies } from "./types";
 
 /** "/art/...", "/img?u=..." from this PC's server, made absolute when the hosted page is talking to it. */
-const SERVER_LINK = /^\/(img\?|art\/|proxy\/|print\/|proxies\/|deckgen-img\/)/;
+const SERVER_LINK = /^\/(img\?|art\/|art-trim\/|proxy\/|print\/|proxies\/|deckgen-img\/)/;
 function absolutize<T>(data: T): T {
   if (conn.mode !== "live") return data;
   return JSON.parse(JSON.stringify(data), (_k, v) => (typeof v === "string" && SERVER_LINK.test(v) ? LOCAL_SERVER + v : v));
@@ -80,6 +81,12 @@ export const loadGenThemes = (deck: string) => serverJson<GenThemes>(`/api/deckg
 export const planGeneration = (req: GenRequest) => post<GenPlan>("deckgen/plan", { ...req });
 export const startGeneration = (req: GenRequest, token: string) => post<GenJob>("deckgen/generate", { ...req, confirm: token });
 export const loadGenJob = () => serverJson<GenJob>("/api/deckgen/job");
+
+// Art position in the frame (DeckSite/artpos.py): no generation, only a re-render.
+export const loadArtPosition = (t: ArtTarget) =>
+  serverJson<ArtPosition>(`/api/deckgen/position?deck=${encodeURIComponent(t.deck)}&style=${encodeURIComponent(t.style)}&card=${encodeURIComponent(t.card)}`);
+export const previewArtPosition = (t: ArtTarget, focus: Focus) => post<{ image: string }>("deckgen/preview", { ...t, focus }).then((d) => d.image);
+export const saveArtPosition = (t: ArtTarget, focus: Focus | null) => post("deckgen/position", { ...t, focus }).then((d) => d.message ?? "");
 
 export const revertDeck = (deck: string, version: number, to: number, why = "") =>
   post<EditResult>("deck/revert", { deck, version, to, why });
