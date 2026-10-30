@@ -117,10 +117,14 @@ export interface ProxySet {
   versions: string[]; // newest first
 }
 
-/** MTG/Proxies: per set, per card key (see proxyKey), its versions newest first; the first one wins. */
+/** One image of a card in a proxy set. variant: 1 = Forest.png, 2 = Forest_2.png ... (missing = 1). */
+export interface ProxyImage { v: string; url: string; variant?: number }
+
+/** MTG/Proxies: per set, per card key (see proxyKey), its images: variant 1 first, each variant's
+ *  versions newest first (the first of each variant wins). */
 export interface Proxies {
   sets: ProxySet[];
-  cards: Record<string, Record<string, { v: string; url: string }[]>>;
+  cards: Record<string, Record<string, ProxyImage[]>>;
 }
 
 // ---- Generating proxies from the page (DeckSite/proxygen.py) ----

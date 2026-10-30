@@ -39,7 +39,7 @@
   const shown = $derived(versions.find((v) => v.key === picked) ?? versions.find((v) => v.inUse) ?? null);
   /** Under its own heading a version needs less: "v7", or the official card's printing. */
   const short = (v: { kind: string; label: string }) =>
-    v.kind === "deck" ? v.label.replace(`${setName} `, "") : v.kind === "official" ? (card?.set_name ?? v.label) : v.label;
+    v.kind === "deck" ? v.label.slice(setName.length).replace(/^ · /, "") : v.kind === "official" ? (card?.set_name ?? v.label) : v.label;
   const showOfficial = $derived(!shown || shown.kind === "official");
   const image = $derived(showOfficial ? official : shown!.url);
   // This card's entry in the deck (for its note), if the deck has it.

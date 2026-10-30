@@ -11,7 +11,8 @@ export interface ArtPosition {
   artSize: [number, number]; // the picked art after trimming
   art: string; // URL of that trimmed art
   focus: Focus;
-  crops: boolean; // cut into several crops: not editable here
+  crops: number; // > 0: one image cut into this many cards (Forest.png, Forest_2.png ...)
+  crop: number; // which of them this is (0-based)
 }
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));

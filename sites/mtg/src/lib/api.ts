@@ -87,10 +87,10 @@ export const startGeneration = (req: GenRequest, token: string) => post<GenJob>(
 export const loadGenJob = () => serverJson<GenJob>("/api/deckgen/job");
 
 // Art position in the frame (DeckSite/artpos.py): no generation, only a re-render.
-export const loadArtPosition = (t: ArtTarget) =>
-  serverJson<ArtPosition>(`/api/deckgen/position?deck=${encodeURIComponent(t.deck)}&style=${encodeURIComponent(t.style)}&card=${encodeURIComponent(t.card)}`);
+export const loadArtPosition = (t: ArtTarget, crop = 0) =>
+  serverJson<ArtPosition>(`/api/deckgen/position?deck=${encodeURIComponent(t.deck)}&style=${encodeURIComponent(t.style)}&card=${encodeURIComponent(t.card)}&crop=${crop}`);
 export const previewArtPosition = (t: ArtTarget, focus: Focus) => post<{ image: string }>("deckgen/preview", { ...t, focus }).then((d) => d.image);
-export const saveArtPosition = (t: ArtTarget, focus: Focus | null) => post("deckgen/position", { ...t, focus }).then((d) => d.message ?? "");
+export const saveArtPosition = (t: ArtTarget, focus: Focus | null, crop = 0) => post("deckgen/position", { ...t, focus, crop }).then((d) => d.message ?? "");
 
 export const revertDeck = (deck: string, version: number, to: number, why = "") =>
   post<EditResult>("deck/revert", { deck, version, to, why });

@@ -14,11 +14,13 @@
   let focus = $state<Focus>({ ...CENTERED });
   let saved = $state<Focus>({ ...CENTERED });
   let viewWidth = $state(0);
+  // A card cut into several crops of one image (Forest.png, Forest_2.png ...) is positioned one at a time.
+  let crop = $state(0);
 
   $effect(() => {
     info = null;
     error = "";
-    loadArtPosition(target).then((i) => {
+    loadArtPosition(target, crop).then((i) => {
       info = i;
       focus = { ...i.focus };
       saved = { ...i.focus };
@@ -73,7 +75,7 @@
     busy = true;
     error = "";
     try {
-      const msg = await saveArtPosition(target, f);
+      const msg = await saveArtPosition(target, f, crop);
       saved = f ? { ...f } : { ...CENTERED };
       focus = { ...saved };
       await onSaved(msg);
@@ -89,9 +91,16 @@
   {#if error}<p class="err" role="alert">{error}</p>{/if}
   {#if !info}
     {#if !error}<p class="dim">Loading the art…</p>{/if}
-  {:else if info.crops}
-    <p class="dim">{card} is cut into several crops of one image; set their positions in the DeckGen file.</p>
   {:else}
+    {#if info.crops > 1}
+      <div class="crops" role="tablist" aria-label="Which art">
+        {#each Array.from({ length: info.crops }, (_, i) => i) as i (i)}
+          <button role="tab" aria-selected={i === crop} class:on={i === crop} disabled={busy}
+            onclick={() => { if (i !== crop) { crop = i; preview = null; } }}>Art {i + 1}</button>
+        {/each}
+        <span class="dim small">One image cut into {info.crops} cards; {sameFocus(focus, saved) ? "each is positioned on its own" : "save before switching"}.</span>
+      </div>
+    {/if}
     <div class="panes">
       <div class="left">
         <p class="eyebrow">Drag to move · scroll to zoom</p>
@@ -130,6 +139,9 @@
 
 <style>
   .editor { display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-4); border: 1px solid var(--line); border-radius: var(--radius-m); background: var(--surface); }
+  .crops { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; }
+  .crops button { font: inherit; font-size: var(--step--1); padding: 0.25rem 0.65rem; border-radius: var(--radius-m); border: 1px solid var(--line); background: transparent; color: var(--muted); cursor: pointer; }
+  .crops button.on { color: var(--fg); border-color: var(--accent); background: var(--accent-soft); }
   .panes { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 13rem); gap: var(--space-5); align-items: start; }
   .left, .right { display: flex; flex-direction: column; gap: var(--space-2); min-width: 0; }
   .window { position: relative; width: 100%; overflow: hidden; border-radius: var(--radius-s); background: var(--bg); cursor: grab; touch-action: none; outline-offset: 3px; }

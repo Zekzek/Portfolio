@@ -4,7 +4,7 @@
   import { href } from "../lib/route";
   import { ApiError, editDeck, revertDeck } from "../lib/api";
   import { editable } from "../lib/connection.svelte";
-  import { coverage, deckArt, proxyFor } from "../lib/proxies";
+  import { artCount, coverage, deckArt, proxyFor } from "../lib/proxies";
   import type { Cards, Deck, DeckArt, EditOp, Proxies } from "../lib/types";
   import AddCard from "./AddCard.svelte";
   import CardDialog from "./CardDialog.svelte";
@@ -148,6 +148,8 @@
     if (p) return p.url;
     return cards[name]?.image ?? null;
   }
+  /** How many different arts the shown set has for a card (Forest.png, Forest_2.png ...). */
+  const artsOf = (name: string) => (imageSet === "original" ? 1 : artCount(proxies, imageSet, name));
   const isProxy = (name: string) => imageSet !== "original" && !!proxyFor(proxies, imageSet, name);
   /** A proxy set is showing but has no image for this card, so it's the original. */
   const isFallback = (name: string) => imageSet !== "original" && !proxyFor(proxies, imageSet, name);
@@ -314,7 +316,7 @@
             <h2 class="group-head"><span>Commander</span></h2>
             <ul class="grid" role="list">
               {#each deck.commanders as e (e.name)}
-                <li><CardTile entry={e} card={cards[e.name]} image={imageFor(e.name)} proxy={isProxy(e.name)} original={isFallback(e.name)} href={cardHref(e.name)} /></li>
+                <li><CardTile entry={e} card={cards[e.name]} image={imageFor(e.name)} proxy={isProxy(e.name)} original={isFallback(e.name)} arts={artsOf(e.name)} href={cardHref(e.name)} /></li>
               {/each}
             </ul>
           </section>
@@ -337,7 +339,7 @@
               {#each g.entries as e (e.name)}
                 <li draggable={editing && !busy} class:lifted={dragging?.card === e.name}
                   ondragstart={(ev) => dragStart(ev, e.name, g.key)} ondragend={dragEnd}>
-                  <CardTile entry={e} card={cards[e.name]} image={imageFor(e.name)} proxy={isProxy(e.name)} original={isFallback(e.name)} badge={badgeFor(e.name)} badgeTitle="Score from the deck notes" href={cardHref(e.name)} />
+                  <CardTile entry={e} card={cards[e.name]} image={imageFor(e.name)} proxy={isProxy(e.name)} original={isFallback(e.name)} arts={artsOf(e.name)} badge={badgeFor(e.name)} badgeTitle="Score from the deck notes" href={cardHref(e.name)} />
                   {#if editing}<EditControls entry={e} category={g.key} categories={categoryNames} {busy} onEdit={(ops) => edit(ops)} />{/if}
                 </li>
               {/each}

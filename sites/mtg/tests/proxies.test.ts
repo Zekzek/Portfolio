@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { activeSet, cardVersions, commanderArts, coverage, deckArt, proxyFor, proxyHistory, proxyKey } from "../src/lib/proxies";
+import { activeSet, artCount, cardVersions, variantsOf, commanderArts, coverage, deckArt, proxyFor, proxyHistory, proxyKey } from "../src/lib/proxies";
 import type { Cards, Deck, Proxies } from "../src/lib/types";
 
 // Must match DeckSite/proxies.py key(): the Python side writes the keys, the page looks them up.
@@ -73,12 +73,12 @@ describe("card dialog versions", () => {
   };
   it("lists this deck's set (all versions), then the official card, then one per other set", () => {
     expect(cardVersions(ps, "Anger", "ink", "/scry").map((v) => [v.label, v.kind, v.inUse])).toEqual([
-      ["Ink v7", "deck", true], ["Ink v6", "deck", false], ["Original card", "official", false], ["Neon v2", "other", false],
+      ["Ink · v7", "deck", true], ["Ink · v6", "deck", false], ["Original card", "official", false], ["Neon · v2", "other", false],
     ]);
   });
   it("uses the official card when the deck's set has no version", () => {
     expect(cardVersions(ps, "Anger", "glass", "/scry").map((v) => [v.label, v.inUse])).toEqual([
-      ["Original card", true], ["Ink v7", false], ["Neon v2", false],
+      ["Original card", true], ["Ink · v7", false], ["Neon · v2", false],
     ]);
     expect(cardVersions(ps, "Sol Ring", null, null)).toEqual([]);
   });
@@ -86,5 +86,26 @@ describe("card dialog versions", () => {
     expect(activeSet("neon", "ink")).toBe("neon");
     expect(activeSet("original", "ink")).toBe("ink");
     expect(activeSet("", null)).toBe(null);
+  });
+});
+
+describe("variants (Forest.png, Forest_2.png ...)", () => {
+  const ps: Proxies = {
+    sets: [{ id: "maya", name: "Maya", description: "", versions: ["v2", "v1"] }, { id: "ink", name: "Ink", description: "", versions: ["v1"] }],
+    cards: {
+      maya: { forest: [{ v: "v1", url: "/f1", variant: 1 }, { v: "v2", url: "/f2b", variant: 2 }, { v: "v1", url: "/f2a", variant: 2 }] },
+      ink: { forest: [{ v: "v1", url: "/i1" }] },
+    },
+  };
+  it("groups a card's images by variant, each newest first", () => {
+    expect(variantsOf(ps.cards.maya.forest).map((x) => [x.variant, x.versions.map((v) => v.url)])).toEqual([[1, ["/f1"]], [2, ["/f2b", "/f2a"]]]);
+    expect(artCount(ps, "maya", "Forest")).toBe(2);
+    expect(artCount(ps, "ink", "Forest")).toBe(1);
+    expect(artCount(ps, "ink", "Swamp")).toBe(0);
+  });
+  it("lists every variant in the deck's set, each variant's newest in use", () => {
+    expect(cardVersions(ps, "Forest", "maya", "/scry").map((v) => [v.label, v.inUse])).toEqual([
+      ["Maya · art 1 · v1", true], ["Maya · art 2 · v2", true], ["Maya · art 2 · v1", false], ["Original card", false], ["Ink · v1", false],
+    ]);
   });
 });
