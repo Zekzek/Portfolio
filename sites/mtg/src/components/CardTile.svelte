@@ -8,14 +8,16 @@
 </script>
 
 <a class="tile" {href} title={entry.note ? `${entry.name}: ${entry.note}` : entry.name}>
-  {#if image}
-    <img src={image} alt={entry.name} loading="lazy" decoding="async" class:proxy />
-  {:else}
-    <span class="missing">
-      <span class="missing-name">{entry.name}</span>
-      <span class="missing-type">{card?.type_line ?? "Not in card data"}</span>
-    </span>
-  {/if}
+  <span class="face">
+    {#if image}
+      <img src={image} alt={entry.name} loading="lazy" decoding="async" class:proxy />
+    {:else}
+      <span class="missing">
+        <span class="missing-name">{entry.name}</span>
+        <span class="missing-type">{card?.type_line ?? "Not in card data"}</span>
+      </span>
+    {/if}
+  </span>
   {#if entry.count > 1}<span class="count mono">×{entry.count}</span>{/if}
   {#if badge !== null}<span class="badge mono" title={badgeTitle}>{badge}</span>{/if}
   {#if arts > 1}<span class="arts mono" title={`${arts} different arts for this card in this set`}>{arts} arts</span>{/if}
@@ -28,12 +30,13 @@
     position: relative; display: block;
     aspect-ratio: 63 / 88;
     border-radius: 4.6% / 3.3%;
-    overflow: hidden;
     background: var(--surface-2);
     box-shadow: 0 1px 0 rgb(0 0 0 / 0.25), 0 6px 16px -8px rgb(0 0 0 / 0.5);
     transition: transform 140ms ease, box-shadow 140ms ease;
   }
   .tile:hover { transform: translateY(-3px) scale(1.015); box-shadow: 0 0 0 2px var(--accent), 0 10px 24px -10px rgb(0 0 0 / 0.6); }
+  /* The card itself is clipped to its rounded corners; tags like "original" can sit outside it. */
+  .face { position: absolute; inset: 0; border-radius: inherit; overflow: hidden; }
   img { width: 100%; height: 100%; object-fit: cover; }
   .missing { position: absolute; inset: 0; padding: var(--space-3); display: flex; flex-direction: column; gap: var(--space-1); border: 1px dashed var(--line); border-radius: inherit; color: var(--fg); }
   .missing-name { font-weight: 700; font-size: var(--step--1); }
@@ -48,9 +51,10 @@
     background: color-mix(in srgb, var(--bg) 85%, transparent); color: var(--accent);
     font-size: var(--step--2); padding: 0.05rem 0.35rem; border-radius: var(--radius-s);
   }
+  /* On the card's top edge, over the border, so it doesn't hide the mana cost. */
   .orig {
-    position: absolute; top: 3%; right: 5%;
-    background: color-mix(in srgb, var(--bg) 85%, transparent); color: var(--muted);
+    position: absolute; top: 0; right: 5%; transform: translateY(-60%); z-index: 1;
+    background: var(--bg); color: var(--muted); border: 1px solid var(--line); line-height: 1.3;
     font-size: var(--step--2); padding: 0.05rem 0.35rem; border-radius: var(--radius-s);
   }
   .note-mark {
