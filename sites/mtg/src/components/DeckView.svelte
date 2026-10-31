@@ -391,7 +391,7 @@
       var(--surface);
   }
   .hero-inner {
-    max-width: 86rem; margin: 0 auto;
+    margin: 0 auto;
     padding: var(--space-5) max(16px, env(safe-area-inset-right, 0px)) var(--space-6) max(16px, env(safe-area-inset-left, 0px));
     min-height: 17rem;
     display: flex; flex-direction: column; justify-content: space-between; gap: var(--space-6);
@@ -410,7 +410,7 @@
   .status-in_progress { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 45%, transparent); }
 
   .drift {
-    max-width: 86rem; margin: 0 auto var(--space-2);
+    margin: 0 auto var(--space-2);
     padding: 0 max(16px, env(safe-area-inset-right, 0px)) 0 max(16px, env(safe-area-inset-left, 0px));
     font-size: var(--step--1); color: var(--muted);
   }
@@ -428,7 +428,7 @@
   .empty h2 { color: var(--fg); }
 
   .layout {
-    max-width: 86rem; margin: 0 auto;
+    margin: 0 auto;
     padding: var(--space-5) max(16px, env(safe-area-inset-right, 0px)) var(--space-8) max(16px, env(safe-area-inset-left, 0px));
     display: grid; grid-template-columns: 15.5rem minmax(0, 1fr); gap: var(--space-6); align-items: start;
   }

@@ -89,7 +89,7 @@
 
 <style>
   .wrap {
-    max-width: 78rem;
+
     margin: 0 auto;
     padding: var(--space-7) max(16px, env(safe-area-inset-right, 0px)) var(--space-8) max(16px, env(safe-area-inset-left, 0px));
     display: flex;

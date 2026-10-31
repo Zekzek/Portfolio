@@ -64,7 +64,7 @@
 
 <style>
   .wrap {
-    max-width: 86rem; margin: 0 auto;
+    margin: 0 auto;
     padding: var(--space-5) max(16px, env(safe-area-inset-right, 0px)) var(--space-8) max(16px, env(safe-area-inset-left, 0px));
     display: flex; flex-direction: column; gap: var(--space-5);
   }
