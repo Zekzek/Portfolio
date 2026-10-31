@@ -157,3 +157,28 @@ describe("keyword grouping and new sorts", () => {
     expect(href({ view: "history", deck: "zask" })).toBe("#/deck/zask/history");
   });
 });
+
+import { alignedRows } from "../src/lib/deck";
+
+describe("main deck and sideboard side by side", () => {
+  const withSide: Deck = {
+    ...deck,
+    categories: [
+      { name: "Ramp", cards: [{ name: "Sol Ring", count: 1 }] },
+      { name: "Insects", cards: [{ name: "Hornet Nest", count: 1 }] },
+      { name: "Lands", cards: [{ name: "Forest", count: 14 }] },
+      { name: SIDEBOARD, excluded: true, cards: [{ name: "Scute Mob", count: 1 }, { name: "Grist, the Hunger Tide", count: 1 }] },
+    ],
+  };
+  it("pairs groups by key and keeps the usual order for sideboard-only groups", () => {
+    const rows = alignedRows(withSide, cards, "type", "name");
+    const view = rows.map((r) => [r.key, r.main?.entries.map((e) => e.name) ?? [], r.side?.entries.map((e) => e.name) ?? []]);
+    const at = (k: string) => view.find((v) => v[0] === k);
+    expect(at("Creature")).toEqual(["Creature", ["Hornet Nest"], ["Scute Mob"]]);
+    expect(at("Planeswalker")).toEqual(["Planeswalker", [], ["Grist, the Hunger Tide"]]);
+    expect(at("Land")).toEqual(["Land", ["Forest"], []]);
+    // Same order as grouping everything together
+    expect(rows.map((r) => r.key)).toEqual(groupDeck({ ...withSide, categories: withSide.categories.map((c) => ({ ...c, excluded: false, name: c.name === SIDEBOARD ? "x" : c.name })) }, cards, "type", "name").map((g) => g.key));
+    expect(rows.find((r) => r.key === "Land")!.main!.count).toBe(14);
+  });
+});

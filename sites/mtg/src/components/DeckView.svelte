@@ -1,11 +1,11 @@
 <script lang="ts">
-  import { SIDEBOARD, groupDeck, isSideboard, mainEntries, sortEntries, manaCurve, pipCounts, typeCounts, type GroupBy, type SortBy } from "../lib/deck";
+  import { SIDEBOARD, alignedRows, groupDeck, isSideboard, mainEntries, sortEntries, type Group, manaCurve, pipCounts, typeCounts, type GroupBy, type SortBy } from "../lib/deck";
   import { STATUS_LABEL, countLabel } from "../lib/labels";
   import { href } from "../lib/route";
   import { ApiError, editDeck, revertDeck } from "../lib/api";
   import { editable } from "../lib/connection.svelte";
   import { artCount, coverage, deckArt, proxyFor } from "../lib/proxies";
-  import type { Cards, Deck, DeckArt, EditOp, Proxies } from "../lib/types";
+  import type { Cards, Deck, DeckArt, DeckEntry, EditOp, Proxies } from "../lib/types";
   import AddCard from "./AddCard.svelte";
   import CardDialog from "./CardDialog.svelte";
   import EditControls from "./EditControls.svelte";
@@ -44,11 +44,12 @@
     collapsed = next;
   }
   function setAll(collapse: boolean) {
-    const next = new Set([...collapsed].filter((k) => !groups.some((g) => groupKey(g.key) === k)));
-    if (collapse) groups.forEach((g) => next.add(groupKey(g.key)));
+    const keys = new Set(foldKeys.map(groupKey));
+    const next = new Set([...collapsed].filter((k) => !keys.has(k)));
+    if (collapse) keys.forEach((k) => next.add(k));
     collapsed = next;
   }
-  const allCollapsed = $derived(groups.length > 0 && groups.every((g) => collapsed.has(groupKey(g.key))));
+  const allCollapsed = $derived(foldKeys.length > 0 && foldKeys.every((k) => collapsed.has(groupKey(k))));
   /** The number shown on a tile for the chosen sort. */
   function badgeFor(name: string): string | null {
     if (sortUsed === "score") return deck.scores?.[name] != null ? String(deck.scores[name]) : "–";
@@ -72,9 +73,17 @@
   let showSide = $state(saved("deck.showSide", "1") === "1");
   let showBoard = $state(saved("deck.showBoard", "1") === "1");
   $effect(() => { remember("deck.showSide", showSide ? "1" : "0"); remember("deck.showBoard", showBoard ? "1" : "0"); });
-  const columns = $derived([showSide ? "15.5rem" : "", "minmax(0, 1fr)", showBoard ? "17rem" : ""].filter(Boolean).join(" "));
+  const columns = $derived(showSide ? "15.5rem minmax(0, 1fr)" : "minmax(0, 1fr)");
+  // Sideboard width in cards, the same size as the deck's.
+  const MAX_BOARD_COLS = 6;
+  let boardCols = $state(Math.min(MAX_BOARD_COLS, Math.max(1, Number(saved("deck.boardCols", "2")) || 2)));
+  $effect(() => remember("deck.boardCols", String(boardCols)));
   // Groups in the main area are categories when grouping by them, so cards can be dropped onto them.
   const byCategory = $derived(editing || groupBy === "category");
+  // Grouped by anything but category, each deck group sits next to the same group of the Sideboard.
+  const aligned = $derived(showBoard && !byCategory);
+  const rows = $derived(aligned ? alignedRows(deck, cards, groupBy as Exclude<GroupBy, "category">, sortUsed) : []);
+  const foldKeys = $derived(aligned ? rows.map((r) => r.key) : groups.map((g) => g.key));
 
   // Drag and drop (connected to this PC): between categories, and in and out of the Sideboard.
   const DRAG_TYPE = "application/x-deckshelf-card";
@@ -353,38 +362,88 @@
             </ul>
           </section>
         {/if}
-        {#if groups.length > 1}
-          <div class="group-tools"><button class="link-btn" onclick={() => setAll(!allCollapsed)}>{allCollapsed ? "Expand all" : "Collapse all"}</button></div>
-        {/if}
-        {#each groups as g (g.key)}
-          {@const shut = collapsed.has(groupKey(g.key))}
+        {#snippet tile(e: DeckEntry, from: string)}
+          <li draggable={editable() && !busy} class:lifted={dragging?.card === e.name}
+            ondragstart={(ev) => dragStart(ev, e.name, from)} ondragend={dragEnd}>
+            <CardTile entry={e} card={cards[e.name]} image={imageFor(e.name)} proxy={isProxy(e.name)} original={isFallback(e.name)} arts={artsOf(e.name)} badge={badgeFor(e.name)} badgeTitle="Score from the deck notes" href={cardHref(e.name)} />
+            {#if editing}<EditControls entry={e} category={from} categories={categoryNames} {busy} onEdit={(ops) => edit(ops)} />{/if}
+          </li>
+        {/snippet}
+        {#snippet head(key: string, label: string, count: number)}
+          {@const shut = collapsed.has(groupKey(key))}
+          <h2 class="group-head">
+            <button class="fold" aria-expanded={!shut} onclick={() => toggleGroup(key)}>
+              <span class="chev" aria-hidden="true">{shut ? "▸" : "▾"}</span>
+              <span>{label}</span> <span class="mono dim">{count}</span>
+            </button>
+          </h2>
+        {/snippet}
+        {#snippet mainGroup(g: Group)}
           <section class="group" class:side={g.sideboard} class:drop-target={dropOn === g.key} role="group" aria-label={g.label}
             ondragover={(e) => byCategory && dragOver(e, g.key)} ondragleave={(e) => dragLeave(e, g.key)} ondrop={(e) => byCategory && drop(e, g.key)}>
-            <h2 class="group-head">
-              <button class="fold" aria-expanded={!shut} onclick={() => toggleGroup(g.key)}>
-                <span class="chev" aria-hidden="true">{shut ? "▸" : "▾"}</span>
-                <span>{g.label}</span> <span class="mono dim">{g.count}</span>
-              </button>
-            </h2>
-            {#if !shut}
-            <ul class="grid" role="list">
-              {#each g.entries as e (e.name)}
-                <li draggable={editable() && !busy} class:lifted={dragging?.card === e.name}
-                  ondragstart={(ev) => dragStart(ev, e.name, g.key)} ondragend={dragEnd}>
-                  <CardTile entry={e} card={cards[e.name]} image={imageFor(e.name)} proxy={isProxy(e.name)} original={isFallback(e.name)} arts={artsOf(e.name)} badge={badgeFor(e.name)} badgeTitle="Score from the deck notes" href={cardHref(e.name)} />
-                  {#if editing}<EditControls entry={e} category={g.key} categories={categoryNames} {busy} onEdit={(ops) => edit(ops)} />{/if}
-                </li>
-              {/each}
-            </ul>
+            {@render head(g.key, g.label, g.count)}
+            {#if !collapsed.has(groupKey(g.key))}
+              {#if g.entries.length}
+                <ul class="grid" role="list">{#each g.entries as e (e.name)}{@render tile(e, g.sideboard ? SIDEBOARD : g.key)}{/each}</ul>
+              {:else}
+                <p class="none">None in the deck</p>
+              {/if}
             {/if}
           </section>
-        {/each}
-        {#if editing && sideboardEmpty && !showBoard}
-          <section class="group side empty-side" class:drop-target={dropOn === SIDEBOARD} role="group" aria-label={SIDEBOARD}
+        {/snippet}
+        {#snippet sideCell(key: string, label: string, entries: DeckEntry[], count: number, foldable: boolean)}
+          <section class="board-cell" class:drop-target={dropOn === SIDEBOARD} role="group" aria-label="{SIDEBOARD}: {label}"
             ondragover={(e) => dragOver(e, SIDEBOARD)} ondragleave={(e) => dragLeave(e, SIDEBOARD)} ondrop={(e) => drop(e, SIDEBOARD)}>
-            <h2 class="group-head"><span>{SIDEBOARD} · set aside, not counted</span></h2>
-            <p class="dim-text">Drag cards here (or use ×) to set them aside without losing them. They stay with this deck but aren't counted or exported.</p>
+            {#if foldable}{@render head(key, label, count)}{/if}
+            {#if !foldable || !collapsed.has(groupKey(key))}
+              {#if entries.length}
+                <ul class="grid board-grid" role="list">{#each entries as e (e.name)}{@render tile(e, SIDEBOARD)}{/each}</ul>
+              {:else}
+                <p class="none">{foldable ? "None set aside" : "Empty"}</p>
+              {/if}
+            {/if}
           </section>
+        {/snippet}
+
+        {#if showBoard}
+          <div class="split" style:--board-cols={boardCols}>
+            <div class="split-head">
+              {#if (aligned ? rows.length : groups.length) > 1}<button class="link-btn" onclick={() => setAll(!allCollapsed)}>{allCollapsed ? "Expand all" : "Collapse all"}</button>{/if}
+            </div>
+            <div class="split-head board-head">
+              <span class="board-title">{SIDEBOARD} <span class="mono dim">{sideboardCount}</span></span>
+              <span class="width" role="group" aria-label="Sideboard width">
+                <button class="mini" onclick={() => (boardCols = Math.max(1, boardCols - 1))} disabled={boardCols <= 1} aria-label="Narrower">−</button>
+                <input type="range" min="1" max={MAX_BOARD_COLS} step="1" bind:value={boardCols} aria-label="Sideboard width in cards" />
+                <button class="mini" onclick={() => (boardCols = Math.min(MAX_BOARD_COLS, boardCols + 1))} disabled={boardCols >= MAX_BOARD_COLS} aria-label="Wider">+</button>
+                <span class="mono dim">{boardCols} {boardCols === 1 ? "card" : "cards"} wide</span>
+              </span>
+            </div>
+            {#if aligned}
+              {#each rows as r (r.key)}
+                <div class="cell">{@render mainGroup(r.main ?? { key: r.key, label: r.label, entries: [], count: 0 })}</div>
+                <div class="cell">{@render sideCell(r.key, r.label, r.side?.entries ?? [], r.side?.count ?? 0, true)}</div>
+              {/each}
+            {:else}
+              <div class="cell stack">{#each groups as g (g.key)}{@render mainGroup(g)}{/each}</div>
+              <div class="cell sticky">
+                <p class="dim-text">Sideboard cards have no category. Group by card type, mana value, color or keyword to see them next to the matching deck cards.</p>
+                {@render sideCell(SIDEBOARD, SIDEBOARD, sideboardEntries, sideboardCount, false)}
+              </div>
+            {/if}
+          </div>
+        {:else}
+          {#if groups.length > 1}
+            <div class="group-tools"><button class="link-btn" onclick={() => setAll(!allCollapsed)}>{allCollapsed ? "Expand all" : "Collapse all"}</button></div>
+          {/if}
+          {#each groups as g (g.key)}{@render mainGroup(g)}{/each}
+          {#if editing && sideboardEmpty}
+            <section class="group side empty-side" class:drop-target={dropOn === SIDEBOARD} role="group" aria-label={SIDEBOARD}
+              ondragover={(e) => dragOver(e, SIDEBOARD)} ondragleave={(e) => dragLeave(e, SIDEBOARD)} ondrop={(e) => drop(e, SIDEBOARD)}>
+              <h2 class="group-head"><span>{SIDEBOARD} · set aside, not counted</span></h2>
+              <p class="dim-text">Drag cards here (or use ×) to set them aside without losing them. They stay with this deck but aren't counted or exported.</p>
+            </section>
+          {/if}
         {/if}
         {#if deck.proxyOnly.length}
           <section class="group extra">
@@ -398,28 +457,6 @@
           </section>
         {/if}
       </main>
-
-      {#if showBoard}
-        <aside class="board" id="deck-board" class:drop-target={dropOn === SIDEBOARD} aria-label={SIDEBOARD}
-          ondragover={(e) => dragOver(e, SIDEBOARD)} ondragleave={(e) => dragLeave(e, SIDEBOARD)} ondrop={(e) => drop(e, SIDEBOARD)}>
-          <h2 class="group-head"><span>{SIDEBOARD}</span> <span class="mono dim">{sideboardCount}</span></h2>
-          <p class="dim-text">Set aside: kept with the deck, not counted or exported.
-            {#if editable()}Drag cards here from the deck, or back out into a category.{/if}</p>
-          {#if sideboardEntries.length}
-            <ul class="grid board-grid" role="list">
-              {#each sideboardEntries as e (e.name)}
-                <li draggable={editable() && !busy} class:lifted={dragging?.card === e.name}
-                  ondragstart={(ev) => dragStart(ev, e.name, SIDEBOARD)} ondragend={dragEnd}>
-                  <CardTile entry={e} card={cards[e.name]} image={imageFor(e.name)} proxy={isProxy(e.name)} original={isFallback(e.name)} arts={artsOf(e.name)} badge={badgeFor(e.name)} badgeTitle="Score from the deck notes" href={cardHref(e.name)} />
-                  {#if editing}<EditControls entry={e} category={SIDEBOARD} categories={categoryNames} {busy} onEdit={(ops) => edit(ops)} />{/if}
-                </li>
-              {/each}
-            </ul>
-          {:else}
-            <p class="empty-board">Empty</p>
-          {/if}
-        </aside>
-      {/if}
     </div>
   {/if}
 </div>
@@ -492,14 +529,25 @@
   }
   .toggle { font: inherit; font-size: var(--step--1); padding: 0.3rem 0.7rem; border-radius: var(--radius-m); border: 1px solid var(--line); background: var(--surface); color: var(--muted); cursor: pointer; }
   .toggle:hover { color: var(--fg); border-color: var(--faint); }
-  .board {
-    position: sticky; top: var(--space-4);
-    max-height: calc(100dvh - 2 * var(--space-4)); overflow-y: auto; scrollbar-width: thin;
-    padding: var(--space-3); border: 1px solid var(--line); border-radius: var(--radius-m); background: var(--surface);
+  .split {
+    display: grid; grid-template-columns: minmax(0, 1fr) min(70%, calc(var(--board-cols) * 14.625rem + (var(--board-cols) - 1) * var(--space-3)));
+    column-gap: var(--space-5); row-gap: var(--space-6); align-items: start;
   }
-  .board.drop-target { outline: 2px dashed var(--accent); outline-offset: 2px; background: var(--accent-soft); }
-  .board-grid { grid-template-columns: repeat(auto-fill, minmax(7rem, 1fr)); gap: var(--space-2); }
-  .empty-board { color: var(--faint); font-size: var(--step--1); text-align: center; padding: var(--space-6) 0; border: 1px dashed var(--line); border-radius: var(--radius-m); }
+  .split-head { display: flex; align-items: center; gap: var(--space-3); min-height: 2rem; }
+  .board-head { justify-content: space-between; flex-wrap: wrap; padding: 0 var(--space-2); }
+  .board-title { font-family: var(--font-display); font-size: var(--step-1); font-weight: 600; }
+  .width { display: inline-flex; align-items: center; gap: var(--space-2); font-size: var(--step--2); }
+  .width input { width: 6rem; accent-color: var(--accent); }
+  .cell { min-width: 0; align-self: stretch; }
+  .cell.stack { display: flex; flex-direction: column; gap: var(--space-6); }
+  .cell.sticky { position: sticky; top: var(--space-4); align-self: start; max-height: calc(100dvh - 2 * var(--space-4)); overflow-y: auto; scrollbar-width: thin; }
+  .board-cell {
+    height: 100%; padding: 0 var(--space-2) var(--space-2); border-radius: var(--radius-m);
+    background: color-mix(in srgb, var(--surface) 70%, transparent); border-left: 2px solid var(--line);
+  }
+  .board-cell.drop-target { outline: 2px dashed var(--accent); outline-offset: 2px; background: var(--accent-soft); }
+  .grid.board-grid { grid-template-columns: repeat(var(--board-cols), minmax(0, 1fr)); }
+  .none { color: var(--faint); font-size: var(--step--2); padding: var(--space-2) 0; }
   .return-bar {
     position: sticky; top: var(--space-2); z-index: 5;
     display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center;
@@ -549,9 +597,11 @@
 
   @media (max-width: 860px) {
     .layout { grid-template-columns: minmax(0, 1fr); }
-    .side, .board { position: static; max-height: none; overflow: visible; }
+    .side, .cell.sticky { position: static; max-height: none; overflow: visible; }
     .controls { flex-direction: row; flex-wrap: wrap; align-items: end; }
     .grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 10rem), 1fr)); gap: var(--space-2); }
+    .split { grid-template-columns: minmax(0, 1fr); }
+    .grid.board-grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 10rem), 1fr)); }
   }
 
   /* Editing: drag and drop */

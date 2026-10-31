@@ -132,6 +132,25 @@ export function groupDeck(deck: Deck, cards: Cards, by: GroupBy, sort: SortBy): 
   return groups.map((g) => ({ ...g, entries: sortEntries(g.entries, cards, sort, deck.scores), count: copies(g.entries) }));
 }
 
+/** One group's main-deck cards next to its Sideboard cards (either side can be missing). */
+export interface Row { key: string; label: string; main: Group | null; side: Group | null }
+
+/**
+ * The main deck and the Sideboard grouped the same way, paired by group: Creatures next to sideboard Creatures.
+ * Not for "category" grouping (Sideboard cards have no category of their own).
+ */
+export function alignedRows(deck: Deck, cards: Cards, by: Exclude<GroupBy, "category">, sort: SortBy): Row[] {
+  const sideCards = deck.categories.find(isSideboard)?.cards ?? [];
+  const mainCats = deck.categories.filter((c) => !isSideboard(c));
+  const as = (categories: Deck["categories"]): Deck => ({ ...deck, categories });
+  const main = groupDeck(as(mainCats), cards, by, sort);
+  const side = groupDeck(as([{ name: "Set aside", cards: sideCards }]), cards, by, sort);
+  // The order of both together, so a group only the Sideboard has still lands in its usual place.
+  const order = groupDeck(as([...mainCats.filter((c) => !c.excluded), { name: "Set aside", cards: sideCards }]), cards, by, sort);
+  const find = (gs: Group[], k: string) => gs.find((g) => g.key === k) ?? null;
+  return order.map((g) => ({ key: g.key, label: g.label, main: find(main, g.key), side: find(side, g.key) }));
+}
+
 /** Nonland cards per mana value, 0 through 7+. */
 export function manaCurve(deck: Deck, cards: Cards): number[] {
   const curve = Array(8).fill(0);
