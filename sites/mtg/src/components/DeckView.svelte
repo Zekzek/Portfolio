@@ -530,7 +530,8 @@
   .toggle { font: inherit; font-size: var(--step--1); padding: 0.3rem 0.7rem; border-radius: var(--radius-m); border: 1px solid var(--line); background: var(--surface); color: var(--muted); cursor: pointer; }
   .toggle:hover { color: var(--fg); border-color: var(--faint); }
   .split {
-    display: grid; grid-template-columns: minmax(0, 1fr) min(70%, calc(var(--board-cols) * 14.625rem + (var(--board-cols) - 1) * var(--space-3)));
+    --card-w: 14.625rem;
+    display: grid; grid-template-columns: minmax(var(--card-w), 1fr) calc(var(--board-cols) * var(--card-w) + (var(--board-cols) - 1) * var(--space-3));
     column-gap: var(--space-5); row-gap: var(--space-6); align-items: start;
   }
   .split-head { display: flex; align-items: center; gap: var(--space-3); min-height: 2rem; }
@@ -546,7 +547,9 @@
     background: color-mix(in srgb, var(--surface) 70%, transparent); border-left: 2px solid var(--line);
   }
   .board-cell.drop-target { outline: 2px dashed var(--accent); outline-offset: 2px; background: var(--accent-soft); }
-  .grid.board-grid { grid-template-columns: repeat(var(--board-cols), minmax(0, 1fr)); }
+  /* Side by side, deck and Sideboard cards are exactly the same width (no stretching to fill). */
+  .split .grid { grid-template-columns: repeat(auto-fill, var(--card-w)); }
+  .split .grid.board-grid { grid-template-columns: repeat(var(--board-cols), var(--card-w)); }
   .none { color: var(--faint); font-size: var(--step--2); padding: var(--space-2) 0; }
   .return-bar {
     position: sticky; top: var(--space-2); z-index: 5;
@@ -601,7 +604,7 @@
     .controls { flex-direction: row; flex-wrap: wrap; align-items: end; }
     .grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 10rem), 1fr)); gap: var(--space-2); }
     .split { grid-template-columns: minmax(0, 1fr); }
-    .grid.board-grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 10rem), 1fr)); }
+    .split .grid, .split .grid.board-grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 10rem), 1fr)); }
   }
 
   /* Editing: drag and drop */
