@@ -17,7 +17,7 @@ Parameters:
     Description: Cognito sign-in address prefix (<prefix>.auth.<region>.amazoncognito.com)
   AllowedEmails:
     Type: String
-    Default: albert.bueche.iv@gmail.com,albertbueche@azragames.com
+    Default: albert.bueche.iv@gmail.com,albertbueche@azragames.com,dragonprincessk@gmail.com
     Description: Comma-separated Google accounts allowed to sign in
   SiteUrls:
     Type: CommaDelimitedList
