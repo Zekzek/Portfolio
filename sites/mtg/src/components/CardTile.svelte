@@ -1,29 +1,50 @@
 <script lang="ts">
-  import type { Card, DeckEntry } from "../lib/types";
+  import type { BackFace, Card, DeckEntry } from "../lib/types";
 
-  let { entry, card, image, proxy = false, original = false, badge = null, badgeTitle = "", arts = 1, href }: {
+  let { entry, card, image, proxy = false, original = false, badge = null, badgeTitle = "", arts = 1, back = null, href }: {
     entry: DeckEntry; card?: Card; image: string | null; proxy?: boolean; original?: boolean;
-    badge?: string | null; badgeTitle?: string; arts?: number; href: string;
+    badge?: string | null; badgeTitle?: string; arts?: number; back?: BackFace | null; href: string;
   } = $props();
+
+  let flipped = $state(false);
+  const showing = $derived(flipped && back ? back : { name: entry.name, image, proxy, original });
 </script>
 
-<a class="tile" {href} title={entry.note ? `${entry.name}: ${entry.note}` : entry.name}>
-  <span class="face">
-    {#if image}
-      <img src={image} alt={entry.name} loading="lazy" decoding="async" class:proxy />
+<div class="tile">
+  <a class="face" {href} title={entry.note ? `${entry.name}: ${entry.note}` : showing.name}>
+    {#if showing.image}
+      <img src={showing.image} alt={showing.name} loading="lazy" decoding="async" class:proxy={showing.proxy} />
     {:else}
       <span class="missing">
-        <span class="missing-name">{entry.name}</span>
-        <span class="missing-type">{card?.type_line ?? "Not in card data"}</span>
+        <span class="missing-name">{showing.name}</span>
+        <span class="missing-type">{flipped ? "Back face" : (card?.type_line ?? "Not in card data")}</span>
       </span>
     {/if}
-  </span>
-  {#if entry.count > 1}<span class="count mono">×{entry.count}</span>{/if}
-  {#if badge !== null}<span class="badge mono" title={badgeTitle}>{badge}</span>{/if}
-  {#if arts > 1}<span class="arts mono" title={`${arts} different arts for this card in this set`}>{arts} arts</span>{/if}
-  {#if original}<span class="orig mono" title="No proxy in this set yet: showing the original card">original</span>{/if}
-  {#if entry.note}<span class="note-mark" aria-label={`Note: ${entry.note}`}>✎</span>{/if}
-</a>
+  </a>
+  <!-- Tags sit on the card's top and bottom edges, over the border, so they hide little of the card. -->
+  {#if badge !== null || back || showing.original}
+    <div class="edge top">
+      <span class="side">
+        {#if badge !== null}<span class="tag badge mono" title={badgeTitle}>{badge}</span>{/if}
+        {#if back}
+          <button class="tag flip mono" aria-pressed={flipped}
+            title={flipped ? `Show the front: ${entry.name}` : `Show the back: ${back.name}`}
+            onclick={() => (flipped = !flipped)}>↻ {flipped ? "front" : "back"}</button>
+        {/if}
+      </span>
+      {#if showing.original}<span class="tag orig mono" title="No proxy in this set yet: showing the original card">original</span>{/if}
+    </div>
+  {/if}
+  {#if (arts > 1 && !flipped) || entry.note || entry.count > 1}
+    <div class="edge bottom">
+      <span class="side">
+        {#if arts > 1 && !flipped}<span class="tag arts mono" title={`${arts} different arts for this card in this set`}>{arts} arts</span>{/if}
+        {#if entry.note}<span class="tag note-mark" aria-label={`Note: ${entry.note}`} title={entry.note}>✎</span>{/if}
+      </span>
+      {#if entry.count > 1}<span class="tag count mono">×{entry.count}</span>{/if}
+    </div>
+  {/if}
+</div>
 
 <style>
   .tile {
@@ -35,36 +56,33 @@
     transition: transform 140ms ease, box-shadow 140ms ease;
   }
   .tile:hover { transform: translateY(-3px) scale(1.015); box-shadow: 0 0 0 2px var(--accent), 0 10px 24px -10px rgb(0 0 0 / 0.6); }
-  /* The card itself is clipped to its rounded corners; tags like "original" can sit outside it. */
-  .face { position: absolute; inset: 0; border-radius: inherit; overflow: hidden; }
+  /* The card itself is clipped to its rounded corners; the tags sit outside it. */
+  .face { position: absolute; inset: 0; border-radius: inherit; overflow: hidden; display: block; color: inherit; }
   img { width: 100%; height: 100%; object-fit: cover; }
   .missing { position: absolute; inset: 0; padding: var(--space-3); display: flex; flex-direction: column; gap: var(--space-1); border: 1px dashed var(--line); border-radius: inherit; color: var(--fg); }
   .missing-name { font-weight: 700; font-size: var(--step--1); }
   .missing-type { font-size: var(--step--2); color: var(--muted); }
-  .badge {
-    position: absolute; top: 3%; left: 5%;
-    background: color-mix(in srgb, var(--bg) 88%, transparent); color: var(--accent); font-weight: 700;
-    font-size: var(--step--1); padding: 0.05rem 0.4rem; border-radius: var(--radius-s);
+
+  /* Half on the card's border, half outside it. */
+  .edge {
+    position: absolute; left: 5%; right: 5%; z-index: 1;
+    display: flex; justify-content: space-between; align-items: center; gap: var(--space-1);
+    pointer-events: none;
   }
-  .arts {
-    position: absolute; bottom: 3%; left: 5%;
-    background: color-mix(in srgb, var(--bg) 85%, transparent); color: var(--accent);
+  .edge.top { top: 0; transform: translateY(-60%); }
+  .edge.bottom { bottom: 0; transform: translateY(60%); }
+  .side { display: flex; gap: var(--space-1); align-items: center; }
+  .tag {
+    background: var(--bg); border: 1px solid var(--line); line-height: 1.3;
     font-size: var(--step--2); padding: 0.05rem 0.35rem; border-radius: var(--radius-s);
+    pointer-events: auto;
   }
-  /* On the card's top edge, over the border, so it doesn't hide the mana cost. */
-  .orig {
-    position: absolute; top: 0; right: 5%; transform: translateY(-60%); z-index: 1;
-    background: var(--bg); color: var(--muted); border: 1px solid var(--line); line-height: 1.3;
-    font-size: var(--step--2); padding: 0.05rem 0.35rem; border-radius: var(--radius-s);
-  }
-  .note-mark {
-    position: absolute; left: 6%; bottom: 4%;
-    background: var(--accent); color: var(--on-accent);
-    font-size: var(--step--1); line-height: 1; padding: 0.2rem 0.3rem; border-radius: var(--radius-s);
-  }
-  .count {
-    position: absolute; right: 6%; bottom: 4%;
-    background: color-mix(in srgb, var(--bg) 82%, transparent); color: var(--fg);
-    font-size: var(--step--1); font-weight: 600; padding: 0.05rem 0.4rem; border-radius: var(--radius-s);
-  }
+  .badge { color: var(--accent); font-weight: 700; }
+  .orig { color: var(--muted); }
+  .arts { color: var(--accent); }
+  .count { color: var(--fg); font-weight: 600; }
+  .note-mark { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+  .flip { color: var(--fg); cursor: pointer; font-family: var(--font-mono, monospace); }
+  .flip:hover, .flip:focus-visible { border-color: var(--accent); color: var(--accent); }
+  .flip[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
 </style>

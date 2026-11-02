@@ -5,7 +5,7 @@
   import { ApiError, editDeck, revertDeck } from "../lib/api";
   import { editable } from "../lib/connection.svelte";
   import { artCount, coverage, deckArt, proxyFor } from "../lib/proxies";
-  import type { Cards, Deck, DeckArt, DeckEntry, EditOp, Proxies } from "../lib/types";
+  import type { BackFace, Cards, Deck, DeckArt, DeckEntry, EditOp, Proxies } from "../lib/types";
   import AddCard from "./AddCard.svelte";
   import CardDialog from "./CardDialog.svelte";
   import EditControls from "./EditControls.svelte";
@@ -175,6 +175,16 @@
   const isProxy = (name: string) => imageSet !== "original" && !!proxyFor(proxies, imageSet, name);
   /** A proxy set is showing but has no image for this card, so it's the original. */
   const isFallback = (name: string) => imageSet !== "original" && !proxyFor(proxies, imageSet, name);
+  /** The card's other face, if it has one: drawn in the shown proxy set, else the original back. */
+  function backFor(name: string): BackFace | null {
+    const face = cards[name]?.faces?.[1];
+    const back = deck.backs?.[name] ?? face?.name;
+    if (!back) return null;
+    const p = imageSet === "original" ? undefined : proxyFor(proxies, imageSet, back);
+    const official = cards[name]?.faces?.find((f) => f.name === back)?.image ?? null;
+    return { name: back, image: p?.url ?? official, proxy: !!p, original: imageSet !== "original" && !p };
+  }
+  const tokenCount = $derived((deck.tokens ?? []).reduce((n, e) => n + e.count, 0));
   const cardHref = (name: string) => href({ view: "deck", deck: deck.id, card: name });
   const cost = (colors: string | null) => (colors ?? "").split("").map((c) => `{${c}}`).join("");
 
@@ -357,7 +367,7 @@
             <h2 class="group-head"><span>Commander</span></h2>
             <ul class="grid" role="list">
               {#each deck.commanders as e (e.name)}
-                <li><CardTile entry={e} card={cards[e.name]} image={imageFor(e.name)} proxy={isProxy(e.name)} original={isFallback(e.name)} arts={artsOf(e.name)} href={cardHref(e.name)} /></li>
+                <li><CardTile entry={e} card={cards[e.name]} image={imageFor(e.name)} proxy={isProxy(e.name)} original={isFallback(e.name)} arts={artsOf(e.name)} back={backFor(e.name)} href={cardHref(e.name)} /></li>
               {/each}
             </ul>
           </section>
@@ -365,7 +375,7 @@
         {#snippet tile(e: DeckEntry, from: string)}
           <li draggable={editable() && !busy} class:lifted={dragging?.card === e.name}
             ondragstart={(ev) => dragStart(ev, e.name, from)} ondragend={dragEnd}>
-            <CardTile entry={e} card={cards[e.name]} image={imageFor(e.name)} proxy={isProxy(e.name)} original={isFallback(e.name)} arts={artsOf(e.name)} badge={badgeFor(e.name)} badgeTitle="Score from the deck notes" href={cardHref(e.name)} />
+            <CardTile entry={e} card={cards[e.name]} image={imageFor(e.name)} proxy={isProxy(e.name)} original={isFallback(e.name)} arts={artsOf(e.name)} back={backFor(e.name)} badge={badgeFor(e.name)} badgeTitle="Score from the deck notes" href={cardHref(e.name)} />
             {#if editing}<EditControls entry={e} category={from} categories={categoryNames} {busy} onEdit={(ops) => edit(ops)} />{/if}
           </li>
         {/snippet}
@@ -444,6 +454,17 @@
               <p class="dim-text">Drag cards here (or use ×) to set them aside without losing them. They stay with this deck but aren't counted or exported.</p>
             </section>
           {/if}
+        {/if}
+        {#if deck.tokens?.length}
+          <section class="group extra">
+            <h2 class="group-head"><span>Tokens</span> <span class="mono dim">{tokenCount}</span></h2>
+            <p class="dim-text">Tokens this deck makes, drawn in the DeckGen manifest <span class="mono">{deck.deckgen}</span>. Not counted in the deck; ×N is how many get printed.</p>
+            <ul class="grid" role="list">
+              {#each deck.tokens as e (e.name)}
+                <li><CardTile entry={e} card={cards[e.name]} image={imageFor(e.name)} proxy={isProxy(e.name)} original={isFallback(e.name)} arts={artsOf(e.name)} href={cardHref(e.name)} /></li>
+              {/each}
+            </ul>
+          </section>
         {/if}
         {#if deck.proxyOnly.length}
           <section class="group extra">
@@ -597,6 +618,8 @@
   .msg.err { color: var(--warn); }
   .dim-text { color: var(--faint); font-size: var(--step--1); margin: calc(-1 * var(--space-1)) 0 var(--space-3); }
   .grid { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 14.625rem), 1fr)); gap: var(--space-3); }
+  /* Tokens and other extras: the same card size as the deck above. */
+  .group.extra .grid { grid-template-columns: repeat(auto-fill, 14.625rem); }
 
   @media (max-width: 860px) {
     .layout { grid-template-columns: minmax(0, 1fr); }
@@ -604,7 +627,7 @@
     .controls { flex-direction: row; flex-wrap: wrap; align-items: end; }
     .grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 10rem), 1fr)); gap: var(--space-2); }
     .split { grid-template-columns: minmax(0, 1fr); }
-    .split .grid, .split .grid.board-grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 10rem), 1fr)); }
+    .split .grid, .split .grid.board-grid, .group.extra .grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 10rem), 1fr)); }
   }
 
   /* Editing: drag and drop */

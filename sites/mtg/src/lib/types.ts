@@ -35,7 +35,9 @@ export interface Deck {
   proxySet?: string | null; // default proxy set (MTG/Proxies/<set>); empty = original cards
   updated: string;
   unknown: string[];
-  proxyOnly: string[]; // in the DeckGen manifest but not in this list
+  proxyOnly: string[]; // in the DeckGen manifest but not in this list (tokens and back faces excluded)
+  backs?: Record<string, string>; // card -> its back face drawn in the DeckGen manifest (`back_of:`)
+  tokens?: DeckEntry[]; // tokens drawn in the DeckGen manifest, with how many to print
   drift: { onlyInDoc: string[]; onlyInList: string[] } | null; // .md Deck List vs .txt; null = nothing to compare
   scores?: Record<string, number>; // card -> Total from the doc's "Card Scores" tables
 }
@@ -45,6 +47,9 @@ export interface Face {
   image: string | null;
   art_crop: string | null;
 }
+
+/** A card's other face as a tile shows it: a double-faced card's back, or one drawn in a proxy set. */
+export interface BackFace { name: string; image: string | null; proxy?: boolean; original?: boolean }
 
 export interface Card {
   name: string;
