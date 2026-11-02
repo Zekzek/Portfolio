@@ -1,14 +1,14 @@
 <script lang="ts">
   import { href } from "../lib/route";
   import { commanderArts } from "../lib/proxies";
-  import type { Cards, Deck, Proxies } from "../lib/types";
+  import type { Art, Cards, Deck, Proxies } from "../lib/types";
   import ThemeToggleButton from "./ThemeToggleButton.svelte";
   import Mana from "./Mana.svelte";
   import { STATUS_LABEL, countLabel } from "../lib/labels";
 
   import { HOSTED, signOut } from "../lib/hosted";
 
-  let { decks, cards, proxies = null, email = "" }: { decks: Deck[]; cards: Cards; proxies?: Proxies | null; email?: string } = $props();
+  let { decks, cards, art = {}, proxies = null, email = "" }: { decks: Deck[]; cards: Cards; art?: Art; proxies?: Proxies | null; email?: string } = $props();
 
   // Families: each deck without a parent, followed by its forks (and their forks).
   const families = $derived.by(() => {
@@ -21,8 +21,9 @@
     });
   });
 
-  // Each commander from the deck's proxy set when it has one, else the original art; partners side by side.
-  const arts = (d: Deck) => commanderArts(d, cards, proxies).slice(0, 2);
+  // Each commander's art (no card frame): picked in DeckGen for a deck with a proxy set, else the original
+  // art crop; partners side by side.
+  const arts = (d: Deck) => commanderArts(d, cards, proxies, art[d.id]).slice(0, 2);
   const parentName = (d: Deck) => decks.find((x) => x.id === d.parent)?.name;
   const cost = (colors: string | null) => (colors ?? "").split("").map((c) => `{${c}}`).join("");
   const totalCards = $derived(decks.reduce((n, d) => n + d.count + d.commanders.reduce((a, c) => a + c.count, 0), 0));

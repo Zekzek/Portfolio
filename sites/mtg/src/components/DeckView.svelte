@@ -160,7 +160,7 @@
   const pips = $derived(pipCounts(deck, cards));
   const parent = $derived(decks.find((d) => d.id === deck.parent));
   const forks = $derived(decks.filter((d) => d.parent === deck.id));
-  const bannerArt = $derived(deckArt(deck, cards, proxies));
+  const bannerArt = $derived(deckArt(deck, cards, proxies, art));
   const banner = $derived(bannerArt?.url ?? null);
   const deckNames = $derived([...deck.commanders, ...mainEntries(deck)].map((e) => e.name));
   const setChoices = $derived((proxies?.sets ?? []).map((s) => ({ ...s, covered: coverage(proxies, s.id, deckNames) })));

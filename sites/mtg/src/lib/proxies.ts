@@ -1,5 +1,5 @@
 // Proxy sets (MTG/Proxies/<set>/v<N>): each card shows its newest version in the chosen set.
-import type { Cards, Deck, ProxyImage, Proxies } from "./types";
+import type { Cards, Deck, DeckArt, ProxyImage, Proxies } from "./types";
 
 /** Same as DeckSite/proxies.py key(): front face, letters and digits only, lowercase. */
 export function proxyKey(name: string): string {
@@ -40,23 +40,36 @@ export function coverage(proxies: Proxies | null, set: string, names: string[]):
 
 export interface CardArt { name: string; url: string; proxy: boolean }
 
-/** A card's picture: from the deck's proxy set when it has one, or the original card's art. */
-function cardArt(name: string, deck: Deck, cards: Cards, proxies: Proxies | null): CardArt | null {
+/** The art picked for a card in DeckGen, without its frame: the deck's active style first, then any style. */
+export function pickedArt(name: string, art?: DeckArt): string | null {
+  const styles = art?.cards[name];
+  if (!styles) return null;
+  for (const id of [art!.activeStyle, ...Object.keys(styles)]) {
+    const s = styles[id];
+    const url = s?.attempts.find((a) => a.n === s.picked)?.url;
+    if (url) return url;
+  }
+  return null;
+}
+
+/** A card's picture (art only, no card frame): with a proxy set, the art picked for it in DeckGen;
+ *  otherwise the original card's art crop. A proxy without picked art (made by hand) shows whole. */
+function cardArt(name: string, deck: Deck, cards: Cards, proxies: Proxies | null, art?: DeckArt): CardArt | null {
   const p = deck.proxySet ? proxyFor(proxies, deck.proxySet, name) : undefined;
-  if (p) return { name, url: p.url, proxy: true };
+  if (p) return { name, url: pickedArt(name, art) ?? p.url, proxy: true };
   const crop = cards[name]?.art_crop;
   return crop ? { name, url: crop, proxy: false } : null;
 }
 
 /** A deck's picture: its first commander. */
-export function deckArt(deck: Deck, cards: Cards, proxies: Proxies | null): CardArt | null {
+export function deckArt(deck: Deck, cards: Cards, proxies: Proxies | null, art?: DeckArt): CardArt | null {
   const name = deck.commanderNames[0];
-  return name ? cardArt(name, deck, cards, proxies) : null;
+  return name ? cardArt(name, deck, cards, proxies, art) : null;
 }
 
 /** Pictures of all of a deck's commanders that have one (partners side by side). */
-export function commanderArts(deck: Deck, cards: Cards, proxies: Proxies | null): CardArt[] {
-  return deck.commanderNames.map((n) => cardArt(n, deck, cards, proxies)).filter((a): a is CardArt => !!a);
+export function commanderArts(deck: Deck, cards: Cards, proxies: Proxies | null, art?: DeckArt): CardArt[] {
+  return deck.commanderNames.map((n) => cardArt(n, deck, cards, proxies, art)).filter((a): a is CardArt => !!a);
 }
 
 export interface CardVersion {

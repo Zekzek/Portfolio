@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { activeSet, artCount, cardVersions, variantsOf, commanderArts, coverage, deckArt, proxyFor, proxyHistory, proxyKey } from "../src/lib/proxies";
-import type { Cards, Deck, Proxies } from "../src/lib/types";
+import type { Cards, Deck, DeckArt, Proxies } from "../src/lib/types";
 
 // Must match DeckSite/proxies.py key(): the Python side writes the keys, the page looks them up.
 describe("proxy keys", () => {
@@ -47,6 +47,22 @@ describe("deck art", () => {
     expect(deckArt(deck("Anger", "neon"), cards, proxies)).toEqual({ name: "Anger", url: "/crop-a", proxy: false });
     expect(deckArt(deck("Anger", null), cards, proxies)).toEqual({ name: "Anger", url: "/crop-a", proxy: false });
     expect(deckArt(deck("Anger", "ink"), cards, null)).toEqual({ name: "Anger", url: "/crop-a", proxy: false });
+  });
+  it("shows the art picked in DeckGen (no card frame) when there is one", () => {
+    const att = (n: number) => ({ n, url: `/raw${n}`, note: "", imported: false });
+    const art = {
+      activeStyle: "ink_v2",
+      cards: {
+        Fabricate: {
+          ink_v1: { attempts: [att(1)], picked: 1, queued: null, composed: null },
+          ink_v2: { attempts: [att(1), att(2)], picked: 2, queued: null, composed: null },
+        },
+      },
+    } as unknown as DeckArt;
+    expect(deckArt(deck("Fabricate", "ink"), cards, proxies, art)?.url).toBe("/raw2");
+    // No pick in any style (a hand-made proxy): the whole proxy card.
+    const none = { activeStyle: "ink_v2", cards: { Fabricate: { ink_v2: { attempts: [att(1)], picked: null, queued: null, composed: null } } } } as unknown as DeckArt;
+    expect(deckArt(deck("Fabricate", "ink"), cards, proxies, none)?.url).toBe("/f7");
   });
 });
 
