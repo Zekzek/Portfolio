@@ -85,6 +85,7 @@ export interface StyleArt {
   picked: number | null;
   queued: string | null; // null = not queued; "" = queued with no note
   composed: string | null;
+  toned?: string | null; // the picked art as it prints (the style's art_tone), without the frame
 }
 
 export interface DeckArt {

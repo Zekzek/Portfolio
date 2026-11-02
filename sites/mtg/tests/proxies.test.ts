@@ -60,6 +60,9 @@ describe("deck art", () => {
       },
     } as unknown as DeckArt;
     expect(deckArt(deck("Fabricate", "ink"), cards, proxies, art)?.url).toBe("/raw2");
+    // A toned copy (the art as it prints) wins over the original attempt.
+    art.cards.Fabricate.ink_v2.toned = "/toned2";
+    expect(deckArt(deck("Fabricate", "ink"), cards, proxies, art)?.url).toBe("/toned2");
     // No pick in any style (a hand-made proxy): the whole proxy card.
     const none = { activeStyle: "ink_v2", cards: { Fabricate: { ink_v2: { attempts: [att(1)], picked: null, queued: null, composed: null } } } } as unknown as DeckArt;
     expect(deckArt(deck("Fabricate", "ink"), cards, proxies, none)?.url).toBe("/f7");

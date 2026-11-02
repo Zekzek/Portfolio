@@ -40,13 +40,14 @@ export function coverage(proxies: Proxies | null, set: string, names: string[]):
 
 export interface CardArt { name: string; url: string; proxy: boolean }
 
-/** The art picked for a card in DeckGen, without its frame: the deck's active style first, then any style. */
+/** The art picked for a card in DeckGen, without its frame: the deck's active style first, then any style.
+ *  Prefers the toned copy (the art as it prints on the card) over the paler original. */
 export function pickedArt(name: string, art?: DeckArt): string | null {
   const styles = art?.cards[name];
   if (!styles) return null;
   for (const id of [art!.activeStyle, ...Object.keys(styles)]) {
     const s = styles[id];
-    const url = s?.attempts.find((a) => a.n === s.picked)?.url;
+    const url = s?.toned || s?.attempts.find((a) => a.n === s.picked)?.url;
     if (url) return url;
   }
   return null;
