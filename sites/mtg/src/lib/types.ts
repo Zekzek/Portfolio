@@ -33,6 +33,7 @@ export interface Deck {
   target: number; // 100 minus commanders
   version: number; // bumps on every change (page or deck.py)
   proxySet?: string | null; // default proxy set (MTG/Proxies/<set>); empty = original cards
+  viewers?: "hidden" | null; // "hidden": not uploaded for view-only sign-ins; empty = shown
   updated: string;
   unknown: string[];
   proxyOnly: string[]; // in the DeckGen manifest but not in this list (tokens and back faces excluded)
@@ -114,7 +115,7 @@ export type EditOp =
   | { op: "move"; card: string; category: string }
   | { op: "sideboard"; card: string } // set aside in the deck's Sideboard
   | { op: "set_note"; card: string; note: string }
-  | { op: "set_deck"; field: "status" | "note" | "name" | "proxySet"; value: string };
+  | { op: "set_deck"; field: "status" | "note" | "name" | "proxySet" | "viewers"; value: string };
 
 export interface ProxySet {
   id: string;

@@ -7,8 +7,31 @@
   import { STATUS_LABEL, countLabel } from "../lib/labels";
 
   import { HOSTED, signOut } from "../lib/hosted";
+  import { editDeck } from "../lib/api";
+  import { editable } from "../lib/connection.svelte";
 
-  let { decks, cards, art = {}, proxies = null, email = "" }: { decks: Deck[]; cards: Cards; art?: Art; proxies?: Proxies | null; email?: string } = $props();
+  let { decks, cards, art = {}, proxies = null, email = "", onDataChanged }: {
+    decks: Deck[]; cards: Cards; art?: Art; proxies?: Proxies | null; email?: string; onDataChanged?: () => Promise<void>;
+  } = $props();
+
+  // Which decks view-only sign-ins see. A hidden deck isn't uploaded to the hosted snapshot at all.
+  let saving = $state<string | null>(null);
+  let problem = $state("");
+  async function setShown(d: Deck, shown: boolean) {
+    saving = d.id;
+    problem = "";
+    try {
+      await editDeck(d.id, d.version, [{ op: "set_deck", field: "viewers", value: shown ? "" : "hidden" }],
+        shown ? "shown to viewers" : "hidden from viewers");
+      await onDataChanged?.();
+    } catch (e) {
+      problem = `${d.name}: ${(e as Error).message}`;
+      await onDataChanged?.();
+    } finally {
+      saving = null;
+    }
+  }
+  const hiddenCount = $derived(decks.filter((d) => d.viewers === "hidden").length);
 
   // Families: each deck without a parent, followed by its forks (and their forks).
   const families = $derived.by(() => {
@@ -34,7 +57,8 @@
     <div>
       <p class="eyebrow">Commander decks</p>
       <h1>Deck shelf</h1>
-      <p class="sub">{decks.length} decks · {totalCards} cards listed</p>
+      <p class="sub">{decks.length} decks · {totalCards} cards listed{#if editable() && hiddenCount} · {hiddenCount} hidden from viewers{/if}</p>
+      {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
     </div>
     <div class="tools">
       <a class="search-link" href={href({ view: "search", q: "" })}>
@@ -59,7 +83,7 @@
       <ul class="tiles" role="list">
         {#each fam.members as d (d.id)}
           {@const pics = arts(d)}
-          <li>
+          <li class:hidden-deck={d.viewers === "hidden"}>
             <a class="tile" class:empty={d.status === "no_list"} href={href({ view: "deck", deck: d.id })}>
               <div class="art" class:pair={pics.length > 1}>
                 {#each pics as a (a.name)}
@@ -81,6 +105,13 @@
                 {#if d.note}<p class="note">{d.note}</p>{/if}
               </div>
             </a>
+            {#if editable()}
+              <label class="viewers" title="View-only sign-ins on the hosted site see this deck only when this is checked">
+                <input type="checkbox" checked={d.viewers !== "hidden"} disabled={saving !== null}
+                  onchange={(e) => setShown(d, e.currentTarget.checked)} />
+                {saving === d.id ? "Saving…" : d.viewers === "hidden" ? "Hidden from viewers" : "Shown to viewers"}
+              </label>
+            {/if}
           </li>
         {/each}
       </ul>
@@ -129,6 +160,13 @@
   }
   .tile:hover { border-color: var(--accent); transform: translateY(-2px); }
   .tile.empty { opacity: 0.7; }
+  li { display: flex; flex-direction: column; gap: var(--space-1); }
+  li .tile { flex: 1; }
+  .hidden-deck .tile { opacity: 0.55; border-style: dashed; }
+  .viewers { display: inline-flex; align-items: center; gap: var(--space-2); font-size: var(--step--1); color: var(--muted); cursor: pointer; align-self: start; }
+  .viewers input { accent-color: var(--accent); }
+  .hidden-deck .viewers { color: var(--warn); }
+  .problem { color: var(--warn); font-size: var(--step--1); margin-top: var(--space-1); }
   .art {
     aspect-ratio: 16 / 7;
     background: var(--surface-2);
