@@ -90,7 +90,8 @@ export interface DeckArt {
   manifest: string;
   deckgenName: string;
   activeStyle: string;
-  styles: { id: string; frame: string; prompt: string; printPdf: string | null }[];
+  styles: { id: string; frame: string; prompt: string; printPdf: string | null; printStale?: boolean }[];
+  counts?: Record<string, number>; // copies on the print sheets, per art ("Name", "Name #2" ...)
   cards: Record<string, Record<string, StyleArt>>;
   nightlyCap: number | null;
 }

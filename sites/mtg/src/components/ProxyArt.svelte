@@ -1,12 +1,12 @@
 <script lang="ts">
   // Proxy art for one card: every DeckGen style, every attempt, pick one, queue a reroll for the next run you start.
-  import { pickAttempt, queueReroll, unqueueReroll } from "../lib/api";
+  import { pickAttempt, queueReroll, setPrintCount, unqueueReroll } from "../lib/api";
   import { editable } from "../lib/connection.svelte";
   import type { DeckArt, StyleArt } from "../lib/types";
   import ArtPosition from "./ArtPosition.svelte";
 
-  let { deckId, cardName, art, cardArt, onArtChanged }: {
-    deckId: string; cardName: string; art: DeckArt; cardArt: Record<string, StyleArt>; onArtChanged: () => Promise<void>;
+  let { deckId, cardName, art, cardArt, label = "", onArtChanged }: {
+    deckId: string; cardName: string; art: DeckArt; cardArt: Record<string, StyleArt>; label?: string; onArtChanged: () => Promise<void>;
   } = $props();
 
   let styleId = $state(art.activeStyle);
@@ -16,6 +16,10 @@
   let message = $state<{ ok: boolean; text: string } | null>(null);
 
   const current = $derived(cardArt[styleId]);
+  // Copies of this art on the print sheets (the manifest's count:, the same in every style).
+  const printCount = $derived(art.counts?.[cardName] ?? 1);
+  let copies = $state(1);
+  $effect(() => { copies = printCount; });
   const target = $derived({ deck: deckId, style: styleId, card: cardName });
 
   async function act(label: string, fn: () => Promise<string>) {
@@ -35,7 +39,7 @@
 
 <section class="proxy" aria-labelledby="proxy-heading">
   <div class="head">
-    <h3 id="proxy-heading">Proxy art</h3>
+    <h3 id="proxy-heading">Proxy art{#if label} <span class="which mono">· {label}</span>{/if}</h3>
     <div class="styles" role="tablist" aria-label="DeckGen style">
       {#each art.styles as s (s.id)}
         <button role="tab" aria-selected={s.id === styleId} class:on={s.id === styleId} onclick={() => { styleId = s.id; message = null; positioning = false; }}>
@@ -62,6 +66,17 @@
         {/if}
         {#if editable() && current.picked !== null && !positioning}
           <button class="btn" onclick={() => { positioning = true; message = null; }}>Reposition art</button>
+        {/if}
+        {#if editable()}
+          <form class="copies" onsubmit={(e) => { e.preventDefault(); act(`${copies} on the print sheets. The PDF is rebuilt when you next open it.`, () => setPrintCount(deckId, cardName, copies)); }}>
+            <label for="print-copies" class="eyebrow">Copies printed</label>
+            <div class="row">
+              <input id="print-copies" type="number" min="0" max="99" step="1" bind:value={copies} />
+              <button class="btn" disabled={busy || copies === printCount || !Number.isInteger(copies) || copies < 0 || copies > 99}>Save</button>
+            </div>
+          </form>
+        {:else}
+          <p class="dim">{printCount} {printCount === 1 ? "copy" : "copies"} on the print sheets</p>
         {/if}
       </div>
 
@@ -114,6 +129,7 @@
   .proxy { border-top: 1px solid var(--line); padding-top: var(--space-5); display: flex; flex-direction: column; gap: var(--space-4); }
   .head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--space-3); }
   h3 { font-size: var(--step-1); }
+  .which { font-size: var(--step--1); color: var(--muted); font-weight: 400; }
   .styles { display: flex; gap: var(--space-1); flex-wrap: wrap; }
   .styles button {
     font-family: var(--font-mono); font-size: var(--step--1);
@@ -142,6 +158,8 @@
   .in-use .tag { color: var(--good); }
   .anote { font-size: var(--step--2); color: var(--faint); margin-top: 2px; }
 
+  .copies { display: flex; flex-direction: column; gap: var(--space-1); margin-top: var(--space-2); }
+  .copies input { width: 4.5rem; flex: none; font: inherit; font-size: var(--step--1); color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-m); padding: 0.4rem 0.5rem; }
   .reroll { display: flex; flex-direction: column; gap: var(--space-2); border-top: 1px dashed var(--line); padding-top: var(--space-3); }
   .row { display: flex; gap: var(--space-2); }
   input[type="text"] {

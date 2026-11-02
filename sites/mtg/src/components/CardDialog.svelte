@@ -2,13 +2,13 @@
   import { decksWith } from "../lib/deck";
   import { href } from "../lib/route";
   import { activeSet, cardVersions } from "../lib/proxies";
-  import type { Card, Deck, DeckArt, EditOp, Proxies } from "../lib/types";
+  import type { Card, Cards, Deck, DeckArt, EditOp, Proxies } from "../lib/types";
   import Mana from "./Mana.svelte";
   import OracleText from "./OracleText.svelte";
   import ProxyArt from "./ProxyArt.svelte";
 
-  let { name, card, deck, decks, art, proxies = null, currentSet = "", closeHref, onArtChanged, onEdit }: {
-    name: string; card?: Card; deck: Deck; decks: Deck[]; art?: DeckArt; proxies?: Proxies | null; currentSet?: string;
+  let { name, card, cards = {}, deck, decks, art, proxies = null, currentSet = "", closeHref, onArtChanged, onEdit }: {
+    name: string; card?: Card; cards?: Cards; deck: Deck; decks: Deck[]; art?: DeckArt; proxies?: Proxies | null; currentSet?: string;
     closeHref: string; onArtChanged: () => Promise<void>;
     onEdit?: (ops: EditOp[]) => Promise<boolean>;
   } = $props();
@@ -26,22 +26,36 @@
   }
 
   const faces = $derived(card?.faces?.length ? card.faces : null);
-  const official = $derived(faces ? faces[face]?.image : card?.image);
+  // The other face: a back drawn in the DeckGen manifest (back_of:), else the double-faced card's back.
+  const backName = $derived(deck.backs?.[name] ?? faces?.[1]?.name ?? null);
+  $effect(() => { void name; face = 0; }); // a new card starts on its front
+  const faceName = $derived(face === 1 && backName ? backName : name);
+  // The back's own text when the card data has it (manifest backs do); otherwise the front's.
+  const faceCard = $derived(face === 1 ? (cards[faceName] ?? card) : card);
+  const official = $derived(faces ? (faces.find((f) => f.name === faceName) ?? faces[0])?.image : card?.image);
   const usedIn = $derived(decksWith(name, decks));
-  const cardArt = $derived(art?.cards[name]);
   // Every picture of the card: this deck's set (all versions), the official card, one per other set.
   const set = $derived(activeSet(currentSet, deck.proxySet));
   const setName = $derived(proxies?.sets.find((s) => s.id === set)?.name ?? set ?? "");
-  const versions = $derived(cardVersions(proxies, name, set, card?.image ?? faces?.[0]?.image ?? null));
+  const versions = $derived(cardVersions(proxies, faceName, set, official ?? null));
   // The big picture: the one in use (the deck's proxy if it has one), or a version you clicked.
   let picked = $state<string | null>(null);
-  $effect(() => { void name; picked = null; }); // a new card starts on its version in use
+  $effect(() => { void name; void face; picked = null; }); // a new card or face starts on its version in use
   const shown = $derived(versions.find((v) => v.key === picked) ?? versions.find((v) => v.inUse) ?? null);
   /** Under its own heading a version needs less: "v7", or the official card's printing. */
   const short = (v: { kind: string; label: string }) =>
     v.kind === "deck" ? v.label.slice(setName.length).replace(/^ · /, "") : v.kind === "official" ? (card?.set_name ?? v.label) : v.label;
   const showOfficial = $derived(!shown || shown.kind === "official");
   const image = $derived(showOfficial ? official : shown!.url);
+  // DeckGen art for what's shown: this face, and for a card with several arts the one picked below
+  // (art k is "Name #k" in DeckGen). Arts cut from one image (crops) are chosen inside Reposition art.
+  const artKey = $derived.by(() => {
+    const v = shown?.kind === "deck" ? shown.variant : 1;
+    const key = v > 1 ? `${faceName} #${v}` : faceName;
+    return art?.cards[key] ? key : faceName;
+  });
+  const artCount = $derived(Object.keys(art?.cards ?? {}).filter((k) => k === faceName || k.startsWith(`${faceName} #`)).length);
+  const cardArt = $derived(art?.cards[artKey]);
   // This card's entry in the deck (for its note), if the deck has it.
   const entry = $derived(deck.commanders.find((c) => c.name === name) ?? deck.categories.flatMap((c) => c.cards).find((c) => c.name === name));
   const inCategory = $derived(deck.categories.find((c) => c.cards.some((e) => e.name === name))?.name);
@@ -64,20 +78,21 @@
 
     <div class="top">
       <div class="picture">
-        {#if image}<img src={image} alt={showOfficial && faces ? faces[face].name : name} />{:else}<div class="noimg">{name}</div>{/if}
+        {#if image}<img src={image} alt={faceName} />{:else}<div class="noimg">{faceName}</div>{/if}
         {#if shown}<p class="shown mono">{shown.label}{shown.inUse ? " · in use" : ""}</p>{/if}
-        {#if faces && showOfficial}
-          <button class="btn flip" onclick={() => (face = (face + 1) % faces.length)}>Show {faces[(face + 1) % faces.length].name}</button>
+        {#if backName}
+          <button class="btn flip" onclick={() => (face = face === 1 ? 0 : 1)}>↻ Show the {face === 1 ? "front" : "back"}: {face === 1 ? name : backName}</button>
         {/if}
       </div>
 
       <div class="info">
         <div class="name-row">
-          <h2>{name}</h2>
-          {#if card?.mana_cost}<Mana cost={card.mana_cost} size="1.2rem" />{/if}
+          <h2>{faceName}</h2>
+          {#if face === 0 && card?.mana_cost}<Mana cost={card.mana_cost} size="1.2rem" />{/if}
         </div>
+        {#if face === 1}<p class="eyebrow">Back of {name}</p>{/if}
         {#if card}
-          <p class="type">{card.type_line}</p>
+          <p class="type">{faceCard?.type_line}</p>
           {#if entry}
             <div class="deck-note">
               <p class="eyebrow">In {deck.name}{inCategory ? ` · ${inCategory}` : " · commander"}{entry.count > 1 ? ` · ${entry.count} copies` : ""}</p>
@@ -92,9 +107,9 @@
               {/if}
             </div>
           {/if}
-          {#if card.oracle_text}<OracleText text={card.oracle_text} />{/if}
-          {#if card.power != null}<p class="pt mono">{card.power}/{card.toughness}</p>{/if}
-          {#if card.loyalty != null}<p class="pt mono">Loyalty {card.loyalty}</p>{/if}
+          {#if faceCard?.oracle_text}<OracleText text={faceCard.oracle_text} />{/if}
+          {#if faceCard?.power != null}<p class="pt mono">{faceCard.power}/{faceCard.toughness}</p>{/if}
+          {#if faceCard?.loyalty != null}<p class="pt mono">Loyalty {faceCard.loyalty}</p>{/if}
           <p class="set">{card.set_name} <span class="mono">({card.set?.toUpperCase()})</span> · {card.rarity}
             {#if card.scryfall_uri} · <a href={card.scryfall_uri} target="_blank" rel="noopener">Scryfall ↗</a>{/if}</p>
         {:else}
@@ -145,7 +160,10 @@
     {/if}
 
     {#if art && cardArt}
-      <ProxyArt deckId={deck.id} cardName={name} {art} {cardArt} {onArtChanged} />
+      {#key artKey}
+        <ProxyArt deckId={deck.id} cardName={artKey} {art} {cardArt} {onArtChanged}
+          label={[face === 1 ? "back" : "", artCount > 1 ? `art ${artKey === faceName ? 1 : artKey.split(" #")[1]} of ${artCount}` : ""].filter(Boolean).join(" · ")} />
+      {/key}
     {:else if art}
       <p class="no-proxy">Not in this deck's DeckGen manifest (<span class="mono">{art.manifest}</span>), so there's no proxy art for it yet.</p>
     {/if}

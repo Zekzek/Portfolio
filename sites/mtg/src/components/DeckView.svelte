@@ -490,7 +490,7 @@
 {/if}
 
 {#if openCard}
-  <CardDialog name={openCard} card={cards[openCard]} {deck} {decks} {art} {proxies} currentSet={imageSet} closeHref={href({ view: "deck", deck: deck.id })} {onArtChanged}
+  <CardDialog name={openCard} card={cards[openCard]} {cards} {deck} {decks} {art} {proxies} currentSet={imageSet} closeHref={href({ view: "deck", deck: deck.id })} {onArtChanged}
     onEdit={!editable() ? undefined : (ops) => edit(ops)} />
 {/if}
 

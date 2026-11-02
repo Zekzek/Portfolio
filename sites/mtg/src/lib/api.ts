@@ -90,6 +90,9 @@ export const loadGenJob = () => serverJson<GenJob>("/api/deckgen/job");
 export const loadArtPosition = (t: ArtTarget, crop = 0) =>
   serverJson<ArtPosition>(`/api/deckgen/position?deck=${encodeURIComponent(t.deck)}&style=${encodeURIComponent(t.style)}&card=${encodeURIComponent(t.card)}&crop=${crop}`);
 export const previewArtPosition = (t: ArtTarget, focus: Focus) => post<{ image: string }>("deckgen/preview", { ...t, focus }).then((d) => d.image);
+/** Copies of one art on the print sheets (its manifest count:); the PDF is rebuilt when next opened. */
+export const setPrintCount = (deck: string, card: string, count: number) =>
+  post("deckgen/count", { deck, card, count }).then((d) => d.message ?? "");
 export const saveArtPosition = (t: ArtTarget, focus: Focus | null, crop = 0) => post("deckgen/position", { ...t, focus, crop }).then((d) => d.message ?? "");
 
 export const revertDeck = (deck: string, version: number, to: number, why = "") =>

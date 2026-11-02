@@ -149,7 +149,7 @@
 
 {#if openCard && firstDeckWith(openCard)}
   {@const owner = firstDeckWith(openCard)!}
-  <CardDialog name={openCard} card={cards[openCard]} deck={owner} {decks} art={art[owner.id]} {proxies} currentSet={chosen[0]?.proxySet ?? ""}
+  <CardDialog name={openCard} card={cards[openCard]} {cards} deck={owner} {decks} art={art[owner.id]} {proxies} currentSet={chosen[0]?.proxySet ?? ""}
     closeHref={href({ view: "compare", decks: ids })} {onArtChanged} />
 {/if}
 

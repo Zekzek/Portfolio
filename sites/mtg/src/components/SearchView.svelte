@@ -58,7 +58,7 @@
 </div>
 
 {#if openCard && owner}
-  <CardDialog name={openCard} card={cards[openCard]} deck={owner} {decks} art={art[owner.id]} {proxies} currentSet={owner.proxySet ?? ""}
+  <CardDialog name={openCard} card={cards[openCard]} {cards} deck={owner} {decks} art={art[owner.id]} {proxies} currentSet={owner.proxySet ?? ""}
     closeHref={href({ view: "search", q: text.trim() })} {onArtChanged} />
 {/if}
 

@@ -20,14 +20,17 @@
   let busy = $state(false);
   let message = $state<{ ok: boolean; text: string } | null>(null);
 
-  const names = $derived(art ? Object.keys(art.cards) : []);
+  // Every art DeckGen draws: a card's name, plus "Name #k" for each further art of a card with several.
+  const keys = $derived(art ? Object.keys(art.cards) : []);
+  // Cards, counted once each (art 1 stands for the card).
+  const names = $derived(keys.filter((k) => !/ #\d+$/.test(k)));
   const active = $derived(art?.activeStyle ?? "");
   const withArt = $derived(names.filter((n) => art!.cards[n][active]?.attempts.length).length);
   const printed = $derived(names.filter((n) => art!.cards[n][active]?.composed).length);
   const queued = $derived(
-    art ? names.flatMap((n) => Object.entries(art.cards[n]).filter(([, s]) => s.queued !== null).map(([style]) => ({ name: n, style }))) : [],
+    art ? keys.flatMap((n) => Object.entries(art.cards[n]).filter(([, s]) => s.queued !== null).map(([style]) => ({ name: n, style }))) : [],
   );
-  const missing = $derived(names.filter((n) => !art!.cards[n][active]?.attempts.length));
+  const missing = $derived(keys.filter((n) => !art!.cards[n][active]?.attempts.length));
 
   async function start() {
     busy = true;
@@ -64,7 +67,8 @@
     {@const pdfs = art.styles.filter((s) => s.printPdf)}
     {#if pdfs.length}
       <p class="small">Print sheets:
-        {#each pdfs as s, i (s.id)}{i ? " · " : ""}<a href={s.printPdf} target="_blank" rel="noopener">{s.id} (PDF)</a>{/each}
+        {#each pdfs as s, i (s.id)}{i ? " · " : ""}<a href={s.printPdf} target="_blank" rel="noopener">{s.id} (PDF)</a>{#if s.printStale}
+          <span class="stale" title={editable() ? "Cards or print counts changed since it was made. Opening it here rebuilds it first (about 10 seconds)." : "Cards or print counts changed since it was made. It's rebuilt when opened on the PC."}> · out of date{editable() ? ", rebuilds when opened" : ""}</span>{/if}{/each}
       </p>
     {/if}
   {:else if !editable()}
@@ -105,4 +109,5 @@
   .run { color: var(--accent); }
   .link-btn { font: inherit; border: 0; background: none; padding: 0; color: var(--muted); cursor: pointer; text-decoration: underline; text-underline-offset: 0.2em; text-align: left; }
   .msg.err { color: var(--warn); }
+  .stale { color: var(--warn); }
 </style>

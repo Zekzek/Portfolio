@@ -29,9 +29,9 @@
     }
   }
 
-  /** After a pick or reroll: only the art changes. */
+  /** After a pick, reroll or print count: the art changes (and token print counts show in the deck). */
   async function reloadArt() {
-    [art, proxies] = await Promise.all([loadArt(), loadProxies().catch(() => proxies)]);
+    [art, proxies, decks] = await Promise.all([loadArt(), loadProxies().catch(() => proxies), loadDecks().catch(() => decks)]);
   }
 
   $effect(() => {
