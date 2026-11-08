@@ -8,8 +8,8 @@ import type { ArtPosition, Focus } from "./artpos";
 import { getJson as bucketJson, signAll } from "./hosted";
 import type { Art, Cards, Deck, EditOp, GenJob, GenPlan, GenRequest, GenThemes, HistoryEntry, Proxies } from "./types";
 
-/** "/art/...", "/img?u=..." from this PC's server, made absolute when the hosted page is talking to it. */
-const SERVER_LINK = /^\/(img\?|art\/|art-trim\/|proxy\/|print\/|proxies\/|deckgen-img\/)/;
+/** "/art/...", "/img?u=...", "/box/..." from this PC's server, made absolute when the hosted page is talking to it. */
+const SERVER_LINK = /^\/(img\?|art\/|art-trim\/|proxy\/|print\/|proxies\/|deckgen-img\/|box\/)/;
 function absolutize<T>(data: T): T {
   if (conn.mode !== "live") return data;
   return JSON.parse(JSON.stringify(data), (_k, v) => (typeof v === "string" && SERVER_LINK.test(v) ? LOCAL_SERVER + v : v));
@@ -30,7 +30,9 @@ async function serverJson<T>(path: string): Promise<T> {
 const getJson = <T>(path: string): Promise<T> =>
   conn.mode === "snapshot" ? bucketJson<T>(path.slice(1)) : serverJson<T>(path);
 
-export const loadDecks = () => getJson<Deck[]>("/data/decks.json");
+/** Decks; in snapshot mode their deck box models point into the private bucket, so they're signed after loading. */
+export const loadDecks = async () =>
+  conn.mode === "snapshot" ? signAll(await getJson<Deck[]>("/data/decks.json")) : getJson<Deck[]>("/data/decks.json");
 export const loadCards = () => getJson<Cards>("/data/cards.json");
 /** Snapshot art links point into the private bucket ("s3:..."), so they're signed after loading. */
 export const loadArt = async () =>

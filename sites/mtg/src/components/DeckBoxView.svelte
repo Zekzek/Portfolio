@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onDestroy, onMount } from "svelte";
   import type { DeckBox } from "../lib/types";
+  import { LOCAL_SERVER, authHeaders } from "../lib/connection.svelte";
 
   let { box, colors, commanderImage = null, backImage = null, onClose }: {
     box: DeckBox; colors: string | null; commanderImage?: string | null; backImage?: string | null; onClose: () => void;
@@ -16,6 +17,24 @@
   // Read the value before the call: with setOpen?.(open), a null setOpen skips reading it, so the effect never re-ran.
   $effect(() => { const v = open; setOpen?.(v); });
   $effect(() => { const v = lift; setLift?.(v); });
+  // A part's STL. From this PC's server (the hosted page connected to it) the request carries the sign-in,
+  // which plain loaders and download links don't send; signed bucket links and local URLs need nothing.
+  async function fetchPart(url: string): Promise<ArrayBuffer> {
+    const headers = url.startsWith(LOCAL_SERVER) ? await authHeaders() : {};
+    const r = await fetch(url, { headers });
+    if (!r.ok) throw new Error(`fetch for "${url}" responded with ${r.status}: ${r.statusText}`);
+    return r.arrayBuffer();
+  }
+  async function download(name: string, url: string) {
+    try {
+      const href = URL.createObjectURL(new Blob([await fetchPart(url)], { type: "model/stl" }));
+      const a = Object.assign(document.createElement("a"), { href, download: `${box.label ?? "deckbox"}-${name}.stl` });
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(href), 10000);
+    } catch (e) {
+      status = `Couldn't download ${name}.stl: ${(e as Error).message}`;
+    }
+  }
   const hasTrays = $derived(!!box.parts.cardtray && !!box.geometry?.cardtrays);
 
   // Each part in the filament planned for it (box.json "colors"); older builds fall back to the deck's first color.
@@ -51,7 +70,7 @@
       const loader = new STLLoader();
       const load = async (url: string | undefined, color: number) => {
         if (!url) return null;
-        const geo = await loader.loadAsync(url);
+        const geo = loader.parse(await fetchPart(url));
         geo.computeVertexNormals();
         return new THREE.Mesh(geo, mat(color));
       };
@@ -254,7 +273,7 @@
     <span class="dim">Drag to turn, scroll to zoom.</span>
     <span class="downloads">
       {#each parts as [name, url] (name)}
-        <a class="btn" href={url} download="{box.label ?? 'deckbox'}-{name}.stl">{name}.stl{name === "cardtray" ? " ×2" : name === "gem" ? " ×4" : ""}</a>
+        <a class="btn" href={url} download="{box.label ?? 'deckbox'}-{name}.stl" onclick={(e) => { e.preventDefault(); download(name, url); }}>{name}.stl{name === "cardtray" ? " ×2" : name === "gem" ? " ×4" : ""}</a>
       {/each}
     </span>
   </div>
