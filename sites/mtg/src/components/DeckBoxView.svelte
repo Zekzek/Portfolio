@@ -75,7 +75,7 @@
         return new THREE.Mesh(geo, mat(color));
       };
       const lighter = new THREE.Color(fallback).offsetHSL(0, 0, 0.08).getHex();
-      const [tray, spine, cover, label, cardtray, inlayWhite, inlayGlow, gem, inlayBorder, inlayBack, inlayBackGlow] = await Promise.all([
+      const [tray, spine, cover, label, cardtray, inlayWhite, inlayGlow, gem, inlayBorder, inlayBack, inlayBackGlow, pages] = await Promise.all([
         load(box.parts.tray, paint("tray", fallback)), load(box.parts.spine, paint("spine", lighter)),
         load(box.parts.cover, paint("cover", lighter)), load(box.parts.label, paint("label", 0xd9b44a)),
         g.cardtrays ? load(box.parts.cardtray, paint("cardtray", 0xb8a58a)) : Promise.resolve(null),
@@ -85,12 +85,13 @@
         load(box.parts.inlay_border, paint("inlay_border", 0xd0703a)),
         load(box.parts.inlay_back, paint("inlay_back", 0xd0703a)),
         load(box.parts.inlay_back_glow, paint("inlay_back_glow", 0x8dff6a)),
+        load(box.parts.pages, paint("pages", 0xf0ede6)),
       ]);
       if (!tray || !spine || !cover) throw new Error("missing parts");
-      // The tray prints its back cover and hinge in one filament and its pages in another (a change at pages_z):
-      // paint each vertex by its height.
+      // The tray prints its back cover and hinge in one filament and its pages in another: a separate pages part,
+      // or (boxes built before it) one part painted by height at the change, pages_z.
       const change = g.pages_z ?? g.panel_t;
-      if (box.colors?.pages && change) {
+      if (!pages && box.colors?.pages && change) {
         const below = new THREE.Color(paint("tray", fallback)), above = new THREE.Color(paint("pages", 0xf0ede6));
         const pos = tray.geometry.getAttribute("position");
         const col = new Float32Array(pos.count * 3);
@@ -131,6 +132,7 @@
       const back = hinge(g.axis_back);
       const front = hinge(g.axis_front);
       book.add(tray, back.pivot);
+      if (pages) book.add(pages);
       back.local.add(spine, front.pivot);
       if (label) back.local.add(label);
       front.local.add(cover);
