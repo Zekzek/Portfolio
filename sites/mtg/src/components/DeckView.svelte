@@ -64,7 +64,6 @@
   let message = $state<{ ok: boolean; text: string } | null>(null);
   // Every category plus the Sideboard (created on first use).
   const categoryNames = $derived([...deck.categories.filter((c) => !isSideboard(c)).map((c) => c.name), SIDEBOARD]);
-  const sideboardEmpty = $derived(!deck.categories.some((c) => isSideboard(c) && c.cards.length));
   const sideboardEntries = $derived(sortEntries(deck.categories.find(isSideboard)?.cards ?? [], cards, sortUsed, deck.scores));
   const sideboardCount = $derived(sideboardEntries.reduce((n, e) => n + e.count, 0));
   // Categories a card can go back into from the Sideboard.
@@ -154,8 +153,8 @@
     }
   }
 
-  // With the Sideboard panel open, the Sideboard shows there instead of at the end of the list.
-  const groups = $derived(groupDeck(deck, cards, editing ? "category" : groupBy, sortUsed).filter((g) => !(showBoard && g.sideboard)));
+  // The Sideboard shows only in its panel, never in the main list.
+  const groups = $derived(groupDeck(deck, cards, editing ? "category" : groupBy, sortUsed).filter((g) => !g.sideboard));
   const curve = $derived(manaCurve(deck, cards));
   const types = $derived(typeCounts(deck, cards));
   const pips = $derived(pipCounts(deck, cards));
@@ -453,13 +452,6 @@
             <div class="group-tools"><button class="link-btn" onclick={() => setAll(!allCollapsed)}>{allCollapsed ? "Expand all" : "Collapse all"}</button></div>
           {/if}
           {#each groups as g (g.key)}{@render mainGroup(g)}{/each}
-          {#if editing && sideboardEmpty}
-            <section class="group side empty-side" class:drop-target={dropOn === SIDEBOARD} role="group" aria-label={SIDEBOARD}
-              ondragover={(e) => dragOver(e, SIDEBOARD)} ondragleave={(e) => dragLeave(e, SIDEBOARD)} ondrop={(e) => drop(e, SIDEBOARD)}>
-              <h2 class="group-head"><span>{SIDEBOARD} · set aside, not counted</span></h2>
-              <p class="dim-text">Drag cards here (or use ×) to set them aside without losing them. They stay with this deck but aren't counted or exported.</p>
-            </section>
-          {/if}
         {/if}
         {#if deck.tokens?.length}
           <section class="group extra">
@@ -639,7 +631,6 @@
   /* Editing: drag and drop */
   .group.drop-target { outline: 2px dashed var(--accent); outline-offset: 6px; border-radius: var(--radius-m); }
   .group.side .group-head { color: var(--muted); }
-  .empty-side { border: 1px dashed var(--line); border-radius: var(--radius-m); padding: var(--space-4); }
   li[draggable="true"] { cursor: grab; }
   li.lifted { opacity: 0.4; }
   .aside-bar {
