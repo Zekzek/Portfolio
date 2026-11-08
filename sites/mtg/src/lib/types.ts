@@ -39,6 +39,7 @@ export interface Deck {
   proxyOnly: string[]; // in the DeckGen manifest but not in this list (tokens and back faces excluded)
   backs?: Record<string, string>; // card -> its back face drawn in the DeckGen manifest (`back_of:`)
   tokens?: DeckEntry[]; // tokens drawn in the DeckGen manifest, with how many to print
+  box?: DeckBox | null; // 3D-printable deck box (MTG/DeckBox, deckbox.py build)
   drift: { onlyInDoc: string[]; onlyInList: string[] } | null; // .md Deck List vs .txt; null = nothing to compare
   scores?: Record<string, number>; // card -> Total from the doc's "Card Scores" tables
 }
@@ -181,4 +182,35 @@ export interface GenJob {
   deck?: string; style?: string; proxySet?: string; step?: string;
   total?: number; done?: number; failed?: number; current?: string | null;
   log?: string[]; started?: string; finished?: string | null; error?: string | null; logFile?: string;
+}
+
+/** A deck's 3D-printable box: STL parts plus the sizes they were built for. */
+/** A book-shaped box: tray (back cover and pages), spine, cover, and the spine's label inlay. */
+export interface DeckBox {
+  parts: Record<string, string>; // part -> STL url (tray, spine, cover, label, cardtray)
+  cards: number; // sleeved cards this deck needs room for
+  capacity?: number | null; // what the box holds (the same for every deck)
+  counted: { deck: number; commander?: number; back?: number; tokens: number; extra: number };
+  backCard?: string | null; // the card in the back cover's hard sleeve
+  colors?: Record<string, string> | null; // part -> the filament color planned for it ("pages": the tray above its back cover)
+  outside: [number, number, number]; // mm: width x height x thickness, closed
+  label?: string | null;
+  magnet: [number, number]; // diameter x height, mm
+  lid?: string; // "book"
+  geometry?: BoxGeometry | null;
+}
+
+/** deckbox.scad's numbers (mm, its axes: X across the cover, Y up the book, Z through it). */
+export interface BoxGeometry {
+  width: number; height: number; thick: number; capacity: number;
+  x0: number; y0: number; // the covers' corner on the spine side
+  axis_x: number; axis_back: number; axis_front: number; // hinge axes run along Y at (axis_x, z)
+  spine_s: number; // the spine's outside face is at x = -spine_s
+  window_x: number; window_y: number; card_z: number; // where the commander shows through the cover
+  back_display?: number; back_z?: number; // a second hard sleeve in the back cover, at the same x, y
+  well_x: number; well_y1: number; well_y2: number; well_w: number; well_h: number; floor_z: number;
+  card_t: number; magnets: number;
+  // lift-out card trays (one per well): where they sit, at the base's floor
+  panel_t?: number; pages_z?: number; inlay_d?: number; gems?: number; gem_x0?: number; gem_x1?: number; gem_y0?: number; gem_y1?: number;
+  cardtrays?: number; cardtray_x?: number; cardtray_y1?: number; cardtray_y2?: number; cardtray_z?: number; cardtray_h?: number;
 }
