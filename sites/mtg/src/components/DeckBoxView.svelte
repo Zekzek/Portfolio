@@ -10,7 +10,7 @@
   let host: HTMLDivElement;
   let status = $state("Loading the model…");
   let open = $state(0); // 0 = closed, 1 = opened flat
-  let lift = $state(0); // card trays: 0 = in the box, 1 = lifted out
+  let lift = $state(0); // lifting floors: 0 = flat, 1 = swung up against the fore-edge wall
   let cleanup: (() => void) | null = null;
   let setOpen: ((v: number) => void) | null = null;
   let setLift: ((v: number) => void) | null = null;
@@ -35,7 +35,7 @@
       status = `Couldn't download ${name}.stl: ${(e as Error).message}`;
     }
   }
-  const hasTrays = $derived(!!box.parts.cardtray && !!box.geometry?.cardtrays);
+  const hasFloors = $derived(!!box.parts.floor && !!box.geometry?.floors);
 
   // Each part in the filament planned for it (box.json "colors"); older builds fall back to the deck's first color.
   const TINT: Record<string, number> = { W: 0xd8cfb4, U: 0x3d6fa8, B: 0x4a4350, R: 0xa8433a, G: 0x3f7a4a };
@@ -75,13 +75,13 @@
         return new THREE.Mesh(geo, mat(color));
       };
       const lighter = new THREE.Color(fallback).offsetHSL(0, 0, 0.08).getHex();
-      // Parts are named by the print they go in: base (the tray), cover, spine; then cardtray and gem.
+      // Parts are named by the print they go in: base (the tray), cover, spine; then floor and gem.
       const part = (name: string, color: number) => load(box.parts[name], paint(name, color));
-      const [tray, pages, inlayBack, inlayBackGlow, cover, inlayWhite, inlayBorder, inlayGlow, spine, label, cardtray, gem] = await Promise.all([
+      const [tray, pages, inlayBack, inlayBackGlow, cover, inlayWhite, inlayBorder, inlayGlow, spine, label, floor, gem] = await Promise.all([
         part("base", fallback), part("base_pages", 0xf0ede6), part("base_border", 0xd0703a), part("base_glow", 0x8dff6a),
         part("cover", lighter), part("cover_frame", 0xf4f4f4), part("cover_border", 0xd0703a), part("cover_glow", 0x8dff6a),
         part("spine", lighter), part("spine_label", 0xd9b44a),
-        g.cardtrays ? part("cardtray", 0xb8a58a) : Promise.resolve(null), part("gem", 0xa64dff),
+        g.floors ? part("floor", 0xb8a58a) : Promise.resolve(null), part("gem", 0xa64dff),
       ]);
       if (!tray || !spine || !cover) throw new Error("missing parts (built before the print-step names? rebuild the box)");
       // Everything below is in deckbox.scad's axes (Z up); the model group turns that into three.js's Y up.
@@ -129,31 +129,38 @@
         }
       }
 
-      // Two stacks of sleeved cards, filled to this deck's count, each in its lift-out card tray (if any).
+      // Two stacks of sleeved cards, filled to this deck's count, each on its lifting floor (if any). A floor
+      // turns about its hinge at the fore-edge end; the floor STL is the lower well's, in place.
       const stackMat = mat(0x2a4d69);
       const perStack = [Math.ceil(box.cards / 2), Math.floor(box.cards / 2)];
-      const lifters: InstanceType<typeof THREE.Group>[] = [];
+      const pivots: InstanceType<typeof THREE.Group>[] = [];
+      const stacks: InstanceType<typeof THREE.Mesh>[] = [];
       [g.well_y1, g.well_y2].forEach((y, i) => {
-        const lifter = new THREE.Group(); // moves up when the trays are lifted out
-        book.add(lifter);
-        lifters.push(lifter);
+        const pivot = new THREE.Group();
+        pivot.position.set(g.floor_ax ?? 0, 0, g.floor_az ?? 0);
+        const local = new THREE.Group();
+        local.position.set(-(g.floor_ax ?? 0), 0, -(g.floor_az ?? 0));
+        pivot.add(local);
+        book.add(pivot);
+        pivots.push(pivot);
         const n = Math.min(perStack[i], g.capacity / 2);
         const sh = Math.max(0.5, n * g.card_t);
         const stack = new THREE.Mesh(new THREE.BoxGeometry(g.well_w - 1.5, g.well_h - 1.5, sh), stackMat);
         stack.position.set(g.well_x + g.well_w / 2, y + g.well_h / 2, g.floor_z + sh / 2);
-        lifter.add(stack);
-        if (cardtray) {
-          const t = i === 0 ? cardtray : new THREE.Mesh(cardtray.geometry, cardtray.material);
-          t.position.set(g.cardtray_x ?? 0, (i === 0 ? g.cardtray_y1 : g.cardtray_y2) ?? 0, g.cardtray_z ?? 0);
-          lifter.add(t);
+        local.add(stack);
+        stacks.push(stack);
+        if (floor) {
+          const f = i === 0 ? floor : new THREE.Mesh(floor.geometry, floor.material);
+          f.position.y = i === 0 ? 0 : (g.floor_dy ?? 0);
+          local.add(f);
         }
       });
-      // Lifted out: straight up clear of the base, then set down beside it on the fore-edge side.
-      setLift = (v) => lifters.forEach((l) => {
-        const up = Math.min(1, v * 2);
-        const out = Math.max(0, v * 2 - 1);
-        l.position.set(out * (g.width + 15), 0, (up - out) * (g.thick + 5) - out * (g.cardtray_z ?? 0));
-      });
+      // Lifting: the floors tip the stacks up at the binding end; past a third of the way the cards are out,
+      // and the floors swing on up to lean on the fore-edge wall, clear of the back cover's hard sleeve.
+      setLift = (v) => {
+        pivots.forEach((p) => { p.rotation.y = v * (95 * Math.PI) / 180; });
+        stacks.forEach((st) => { st.visible = v < 0.34; });
+      };
       setLift(lift);
 
       // A card in its hard sleeve behind a window: the commander in the cover, and one in the back cover.
@@ -232,7 +239,7 @@
     }
     return [...groups];
   });
-  const times = (name: string) => (name === "cardtray" ? " ×2" : name === "gem" ? " ×4" : "");
+  const times = (name: string) => (name === "floor" ? " ×2" : name === "gem" ? " ×4" : "");
 </script>
 
 <section class="box" aria-label="Deck box">
@@ -241,7 +248,7 @@
     <p class="meta mono">
       {w} × {h} × {t} mm{box.capacity ? ` · holds ${box.capacity} sleeved cards in two stacks` : ""} · this deck: {box.cards}
       ({box.counted.deck} deck{box.counted.tokens ? ` + ${box.counted.tokens} tokens` : ""}{box.counted.extra ? ` + ${box.counted.extra} extra` : ""}){box.counted.commander ? " + commander in a hard sleeve in the cover" : ""}{box.backCard ? ` + ${box.backCard} in the back cover` : box.geometry?.back_display ? " · a hard sleeve in the back cover for any card" : ""}
-      · {box.geometry?.magnets ?? 4} magnet pairs {box.magnet[0]}×{box.magnet[1]} mm · hinge pins: 1.75 mm filament{hasTrays ? " · a lift-out card tray in each well" : ""}
+      · {box.geometry?.magnets ?? 4} magnet pairs {box.magnet[0]}×{box.magnet[1]} mm · hinge pins: pipe cleaners{hasFloors ? " · a lifting floor in each well" : ""}
     </p>
     <button class="btn quiet" onclick={onClose}>Close</button>
   </div>
@@ -254,10 +261,10 @@
       <span class="eyebrow">Open</span>
       <input type="range" min="0" max="1" step="0.01" bind:value={open} aria-label="Open the book" />
     </label>
-    {#if hasTrays}
+    {#if hasFloors}
       <label class="lid">
-        <span class="eyebrow">Lift trays</span>
-        <input type="range" min="0" max="1" step="0.01" bind:value={lift} aria-label="Lift the card trays out" />
+        <span class="eyebrow">Lift floors</span>
+        <input type="range" min="0" max="1" step="0.01" bind:value={lift} aria-label="Lift the floors" />
       </label>
     {/if}
     <span class="dim">Drag to turn, scroll to zoom.</span>
