@@ -75,36 +75,15 @@
         return new THREE.Mesh(geo, mat(color));
       };
       const lighter = new THREE.Color(fallback).offsetHSL(0, 0, 0.08).getHex();
-      const [tray, spine, cover, label, cardtray, inlayWhite, inlayGlow, gem, inlayBorder, inlayBack, inlayBackGlow, pages] = await Promise.all([
-        load(box.parts.tray, paint("tray", fallback)), load(box.parts.spine, paint("spine", lighter)),
-        load(box.parts.cover, paint("cover", lighter)), load(box.parts.label, paint("label", 0xd9b44a)),
-        g.cardtrays ? load(box.parts.cardtray, paint("cardtray", 0xb8a58a)) : Promise.resolve(null),
-        load(box.parts.inlay_white, paint("inlay_white", 0xf4f4f4)),
-        load(box.parts.inlay_glow, paint("inlay_glow", 0x8dff6a)),
-        load(box.parts.gem, paint("gem", 0xa64dff)),
-        load(box.parts.inlay_border, paint("inlay_border", 0xd0703a)),
-        load(box.parts.inlay_back, paint("inlay_back", 0xd0703a)),
-        load(box.parts.inlay_back_glow, paint("inlay_back_glow", 0x8dff6a)),
-        load(box.parts.pages, paint("pages", 0xf0ede6)),
+      // Parts are named by the print they go in: base (the tray), cover, spine; then cardtray and gem.
+      const part = (name: string, color: number) => load(box.parts[name], paint(name, color));
+      const [tray, pages, inlayBack, inlayBackGlow, cover, inlayWhite, inlayBorder, inlayGlow, spine, label, cardtray, gem] = await Promise.all([
+        part("base", fallback), part("base_pages", 0xf0ede6), part("base_border", 0xd0703a), part("base_glow", 0x8dff6a),
+        part("cover", lighter), part("cover_frame", 0xf4f4f4), part("cover_border", 0xd0703a), part("cover_glow", 0x8dff6a),
+        part("spine", lighter), part("spine_label", 0xd9b44a),
+        g.cardtrays ? part("cardtray", 0xb8a58a) : Promise.resolve(null), part("gem", 0xa64dff),
       ]);
-      if (!tray || !spine || !cover) throw new Error("missing parts");
-      // The tray prints its back cover and hinge in one filament and its pages in another: a separate pages part,
-      // or (boxes built before it) one part painted by height at the change, pages_z.
-      const change = g.pages_z ?? g.panel_t;
-      if (!pages && box.colors?.pages && change) {
-        const below = new THREE.Color(paint("tray", fallback)), above = new THREE.Color(paint("pages", 0xf0ede6));
-        const pos = tray.geometry.getAttribute("position");
-        const col = new Float32Array(pos.count * 3);
-        // each triangle takes one color, by its highest corner, so faces don't blend across the change
-        for (let i = 0; i < pos.count; i += 3) {
-          const top = Math.max(pos.getZ(i), pos.getZ(i + 1), pos.getZ(i + 2));
-          const c = top > change + 0.05 ? above : below;
-          for (let k = 0; k < 3; k++) col.set([c.r, c.g, c.b], (i + k) * 3);
-        }
-        tray.geometry.setAttribute("color", new THREE.BufferAttribute(col, 3));
-        tray.material = mat(0xffffff, { vertexColors: true });
-      }
-
+      if (!tray || !spine || !cover) throw new Error("missing parts (built before the print-step names? rebuild the box)");
       // Everything below is in deckbox.scad's axes (Z up); the model group turns that into three.js's Y up.
       const model = new THREE.Group();
       model.rotation.x = -Math.PI / 2;
@@ -244,7 +223,16 @@
   });
   onDestroy(() => cleanup?.());
 
-  const parts = $derived(Object.entries(box.parts));
+  // Download buttons grouped by print: a part's name starts with its print (base_pages goes with base).
+  const prints = $derived.by(() => {
+    const groups = new Map<string, [string, string][]>();
+    for (const [name, url] of Object.entries(box.parts)) {
+      const key = name.split("_")[0];
+      groups.set(key, [...(groups.get(key) ?? []), [name, url]]);
+    }
+    return [...groups];
+  });
+  const times = (name: string) => (name === "cardtray" ? " ×2" : name === "gem" ? " ×4" : "");
 </script>
 
 <section class="box" aria-label="Deck box">
@@ -274,8 +262,12 @@
     {/if}
     <span class="dim">Drag to turn, scroll to zoom.</span>
     <span class="downloads">
-      {#each parts as [name, url] (name)}
-        <a class="btn" href={url} download="{box.label ?? 'deckbox'}-{name}.stl" onclick={(e) => { e.preventDefault(); download(name, url); }}>{name}.stl{name === "cardtray" ? " ×2" : name === "gem" ? " ×4" : ""}</a>
+      {#each prints as [print, files] (print)}
+        <span class="print" aria-label="{print} print">
+          {#each files as [name, url] (name)}
+            <a class="btn" href={url} download="{box.label ?? 'deckbox'}-{name}.stl" onclick={(e) => { e.preventDefault(); download(name, url); }}>{name}.stl{times(name)}</a>
+          {/each}
+        </span>
       {/each}
     </span>
   </div>
@@ -296,7 +288,8 @@
   .foot { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-4); font-size: var(--step--1); }
   .lid { display: flex; align-items: center; gap: var(--space-2); }
   .dim { color: var(--muted); flex: 1; }
-  .downloads { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+  .downloads { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-4); }
+  .print { display: flex; flex-wrap: wrap; gap: var(--space-1, 0.25rem); padding: 0.2rem; border-radius: var(--radius-m); background: var(--bg); outline: 1px dashed var(--line); }
   .btn { font: inherit; font-size: var(--step--1); padding: 0.4rem 0.75rem; border-radius: var(--radius-m); border: 1px solid var(--line); background: var(--bg); color: var(--fg); cursor: pointer; text-decoration: none; }
   .btn:hover { border-color: var(--accent); }
   .btn.quiet { color: var(--muted); }

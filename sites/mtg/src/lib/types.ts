@@ -185,14 +185,14 @@ export interface GenJob {
 }
 
 /** A deck's 3D-printable box: STL parts plus the sizes they were built for. */
-/** A book-shaped box: tray (back cover and pages), spine, cover, and the spine's label inlay. */
+/** A book-shaped box: its parts are named by print (base, base_pages, ..., cover, cover_*, spine, spine_label, cardtray, gem). */
 export interface DeckBox {
-  parts: Record<string, string>; // part -> STL url (tray, spine, cover, label, cardtray)
+  parts: Record<string, string>; // part -> STL url, named by print: base*, cover*, spine*, cardtray, gem
   cards: number; // sleeved cards this deck needs room for
   capacity?: number | null; // what the box holds (the same for every deck)
   counted: { deck: number; commander?: number; back?: number; tokens: number; extra: number };
   backCard?: string | null; // the card in the back cover's hard sleeve
-  colors?: Record<string, string> | null; // part -> the filament color planned for it ("pages": the tray above its back cover)
+  colors?: Record<string, string> | null; // part -> the filament color planned for it ("base_pages": the tray above its back cover)
   outside: [number, number, number]; // mm: width x height x thickness, closed
   label?: string | null;
   magnet: [number, number]; // diameter x height, mm
