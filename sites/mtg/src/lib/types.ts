@@ -213,5 +213,5 @@ export interface BoxGeometry {
   // lifting floors (one per well): the panel-to-bar hinge's axis (at rest), the panel's length from it to
   // its fore end, the knuckles' radius, and how far the upper floor is from the lower
   panel_t?: number; pages_z?: number; inlay_d?: number; gems?: number; gem_x0?: number; gem_x1?: number; gem_y0?: number; gem_y1?: number;
-  floors?: number; floor_ax?: number; floor_az?: number; floor_dy?: number; floor_len?: number; floor_r?: number;
+  floors?: number; floor_ax?: number; floor_az?: number; floor_dy?: number; floor_len?: number; floor_r?: number; floor_bar_x?: number; // the bar prints flat; this turns it back
 }

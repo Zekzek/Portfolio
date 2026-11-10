@@ -155,7 +155,13 @@
         local.add(stack);
         const copy = (m: InstanceType<typeof THREE.Mesh>) => (i === 0 ? m : new THREE.Mesh(m.geometry, m.material));
         if (floor) local.add(copy(floor));
-        if (floorBar) bar.add(copy(floorBar));
+        if (floorBar) {
+          // printed lying on its inside face: turn it back upright, against the binding-side wall
+          const m = copy(floorBar);
+          m.rotation.y = -Math.PI / 2;
+          m.position.x = g.floor_bar_x ?? 0;
+          bar.add(m);
+        }
         units.push({ unit, bar, pivot, stack });
       });
       // The panel's angle with the hinge h up: its fore end's bottom corner stays on the bottom.
