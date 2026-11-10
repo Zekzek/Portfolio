@@ -188,6 +188,21 @@
       };
       setLift(lift);
 
+      // A card's face: w x h with rounded corners (as a real card's, so the window's corners read true), the
+      // image stretched over it.
+      const cardShape = (w: number, h: number, r: number) => {
+        const sh = new THREE.Shape();
+        const x = -w / 2, y = -h / 2;
+        sh.moveTo(x + r, y);
+        sh.lineTo(x + w - r, y); sh.quadraticCurveTo(x + w, y, x + w, y + r);
+        sh.lineTo(x + w, y + h - r); sh.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+        sh.lineTo(x + r, y + h); sh.quadraticCurveTo(x, y + h, x, y + h - r);
+        sh.lineTo(x, y + r); sh.quadraticCurveTo(x, y, x + r, y);
+        const geo = new THREE.ShapeGeometry(sh, 8);
+        const pos = geo.attributes.position, uv = geo.attributes.uv;
+        for (let i = 0; i < pos.count; i++) uv.setXY(i, (pos.getX(i) - x) / w, (pos.getY(i) - y) / h);
+        return geo;
+      };
       // A card in its hard sleeve behind a window: the commander in the cover, and one in the back cover.
       // back = true: it faces out of the back (turned over about Y, so it reads upright from behind).
       const display = (parent: InstanceType<typeof THREE.Group>, z: number, image: string | null, back: boolean) => {
@@ -200,7 +215,7 @@
         if (image) {
           new THREE.TextureLoader().setCrossOrigin("anonymous").loadAsync(image).then((tex) => {
             tex.colorSpace = THREE.SRGBColorSpace;
-            const card = new THREE.Mesh(new THREE.PlaneGeometry(63, 88), new THREE.MeshBasicMaterial({ map: tex }) /* faces out only */);
+            const card = new THREE.Mesh(cardShape(63, 88, 3.2), new THREE.MeshBasicMaterial({ map: tex }) /* faces out only */);
             card.position.set(g.window_x, g.window_y, z - 0.2 * out);
             if (back) card.rotation.y = Math.PI;
             parent.add(card);
