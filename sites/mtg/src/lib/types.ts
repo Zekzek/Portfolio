@@ -185,9 +185,9 @@ export interface GenJob {
 }
 
 /** A deck's 3D-printable box: STL parts plus the sizes they were built for. */
-/** A book-shaped box: its parts are named by print (base, base_pages, ..., cover, cover_*, spine, spine_label, floor, gem). */
+/** A book-shaped box: its parts are named by print (base, base_pages, ..., cover, cover_*, spine, spine_label, floor, floor_bar, gem). */
 export interface DeckBox {
-  parts: Record<string, string>; // part -> STL url, named by print: base*, cover*, spine*, floor, gem
+  parts: Record<string, string>; // part -> STL url, named by print: base*, cover*, spine*, floor*, gem
   cards: number; // sleeved cards this deck needs room for
   capacity?: number | null; // what the box holds (the same for every deck)
   counted: { deck: number; commander?: number; back?: number; tokens: number; extra: number };
@@ -210,7 +210,8 @@ export interface BoxGeometry {
   back_display?: number; back_z?: number; // a second hard sleeve in the back cover, at the same x, y
   well_x: number; well_y1: number; well_y2: number; well_w: number; well_h: number; floor_z: number;
   card_t: number; magnets: number;
-  // lifting floors (one per well): their hinge axis, and how far the upper one is from the lower
+  // lifting floors (one per well): the panel-to-bar hinge's axis (at rest), the panel's length from it to
+  // its fore end, the knuckles' radius, and how far the upper floor is from the lower
   panel_t?: number; pages_z?: number; inlay_d?: number; gems?: number; gem_x0?: number; gem_x1?: number; gem_y0?: number; gem_y1?: number;
-  floors?: number; floor_ax?: number; floor_az?: number; floor_dy?: number;
+  floors?: number; floor_ax?: number; floor_az?: number; floor_dy?: number; floor_len?: number; floor_r?: number;
 }

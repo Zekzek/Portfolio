@@ -10,7 +10,7 @@
   let host: HTMLDivElement;
   let status = $state("Loading the model…");
   let open = $state(0); // 0 = closed, 1 = opened flat
-  let lift = $state(0); // lifting floors: 0 = flat, 1 = swung up against the fore-edge wall
+  let lift = $state(0); // lifting floors: 0 = flat; to 0.65 the bars rise and tip the stacks; then both lift out
   let cleanup: (() => void) | null = null;
   let setOpen: ((v: number) => void) | null = null;
   let setLift: ((v: number) => void) | null = null;
@@ -75,13 +75,14 @@
         return new THREE.Mesh(geo, mat(color));
       };
       const lighter = new THREE.Color(fallback).offsetHSL(0, 0, 0.08).getHex();
-      // Parts are named by the print they go in: base (the tray), cover, spine; then floor and gem.
+      // Parts are named by the print they go in: base (the tray), cover, spine; then floor, floor_bar and gem.
       const part = (name: string, color: number) => load(box.parts[name], paint(name, color));
-      const [tray, pages, inlayBack, inlayBackGlow, cover, inlayWhite, inlayBorder, inlayGlow, spine, label, floor, gem] = await Promise.all([
+      const [tray, pages, inlayBack, inlayBackGlow, cover, inlayWhite, inlayBorder, inlayGlow, spine, label, floor, floorBar, gem] = await Promise.all([
         part("base", fallback), part("base_pages", 0xf0ede6), part("base_border", 0xd0703a), part("base_glow", 0x8dff6a),
         part("cover", lighter), part("cover_frame", 0xf4f4f4), part("cover_border", 0xd0703a), part("cover_glow", 0x8dff6a),
         part("spine", lighter), part("spine_label", 0xd9b44a),
-        g.floors ? part("floor", 0xb8a58a) : Promise.resolve(null), part("gem", 0xa64dff),
+        g.floors ? part("floor", 0xb8a58a) : Promise.resolve(null),
+        g.floors ? part("floor_bar", 0xb8a58a) : Promise.resolve(null), part("gem", 0xa64dff),
       ]);
       if (!tray || !spine || !cover) throw new Error("missing parts (built before the print-step names? rebuild the box)");
       // Everything below is in deckbox.scad's axes (Z up); the model group turns that into three.js's Y up.
@@ -129,37 +130,55 @@
         }
       }
 
-      // Two stacks of sleeved cards, filled to this deck's count, each on its lifting floor (if any). A floor
-      // turns about its hinge at the fore-edge end; the floor STL is the lower well's, in place.
+      // Two stacks of sleeved cards, filled to this deck's count, each on its lifting floor (if any): a panel
+      // hinged to a lift bar at the binding-side bottom corner. Lifting the bar raises the hinge; the panel
+      // tips about it, its fore end dragging along the bottom. The STLs are the lower well's, in place.
       const stackMat = mat(0x2a4d69);
       const perStack = [Math.ceil(box.cards / 2), Math.floor(box.cards / 2)];
-      const pivots: InstanceType<typeof THREE.Group>[] = [];
-      const stacks: InstanceType<typeof THREE.Mesh>[] = [];
-      [g.well_y1, g.well_y2].forEach((y, i) => {
+      const ax = g.floor_ax ?? 0, az = g.floor_az ?? 0, len = g.floor_len ?? 1, fr = g.floor_r ?? 0;
+      const units: { unit: InstanceType<typeof THREE.Group>; bar: InstanceType<typeof THREE.Group>; pivot: InstanceType<typeof THREE.Group>; stack: InstanceType<typeof THREE.Mesh> }[] = [];
+      [g.well_y1, g.well_y2].forEach((_y, i) => {
+        const unit = new THREE.Group(); // this well's floor, panel and bar together
+        unit.position.y = i === 0 ? 0 : (g.floor_dy ?? 0);
+        book.add(unit);
+        const bar = new THREE.Group();
         const pivot = new THREE.Group();
-        pivot.position.set(g.floor_ax ?? 0, 0, g.floor_az ?? 0);
+        pivot.position.set(ax, 0, az);
         const local = new THREE.Group();
-        local.position.set(-(g.floor_ax ?? 0), 0, -(g.floor_az ?? 0));
+        local.position.set(-ax, 0, -az);
         pivot.add(local);
-        book.add(pivot);
-        pivots.push(pivot);
+        unit.add(bar, pivot);
         const n = Math.min(perStack[i], g.capacity / 2);
         const sh = Math.max(0.5, n * g.card_t);
         const stack = new THREE.Mesh(new THREE.BoxGeometry(g.well_w - 1.5, g.well_h - 1.5, sh), stackMat);
-        stack.position.set(g.well_x + g.well_w / 2, y + g.well_h / 2, g.floor_z + sh / 2);
+        stack.position.set(g.well_x + g.well_w / 2, g.well_y1 + g.well_h / 2, g.floor_z + sh / 2);
         local.add(stack);
-        stacks.push(stack);
-        if (floor) {
-          const f = i === 0 ? floor : new THREE.Mesh(floor.geometry, floor.material);
-          f.position.y = i === 0 ? 0 : (g.floor_dy ?? 0);
-          local.add(f);
-        }
+        const copy = (m: InstanceType<typeof THREE.Mesh>) => (i === 0 ? m : new THREE.Mesh(m.geometry, m.material));
+        if (floor) local.add(copy(floor));
+        if (floorBar) bar.add(copy(floorBar));
+        units.push({ unit, bar, pivot, stack });
       });
-      // Lifting: the floors tip the stacks up at the binding end; past a third of the way the cards are out,
-      // and the floors swing on up to lean on the fore-edge wall, clear of the back cover's hard sleeve.
+      // The panel's angle with the hinge h up: its fore end's bottom corner stays on the bottom.
+      const tilt = (h: number) => {
+        let lo = 0, hi = Math.PI / 2;
+        for (let k = 0; k < 40; k++) {
+          const m = (lo + hi) / 2;
+          if (h + fr * (1 - Math.cos(m)) - len * Math.sin(m) > 0) lo = m; else hi = m;
+        }
+        return lo;
+      };
+      const hMax = 30; // mm the bar rises before the cards come out
       setLift = (v) => {
-        pivots.forEach((p) => { p.rotation.y = v * (95 * Math.PI) / 180; });
-        stacks.forEach((st) => { st.visible = v < 0.34; });
+        const h = Math.min(v / 0.65, 1) * hMax;
+        const out = Math.max(0, (v - 0.65) / 0.35) * 80; // then both parts lift out, clear of the back sleeve
+        const th = tilt(h);
+        for (const u of units) {
+          u.bar.position.z = h;
+          u.pivot.position.z = az + h;
+          u.pivot.rotation.y = th;
+          u.unit.position.z = out;
+          u.stack.visible = v <= 0.65;
+        }
       };
       setLift(lift);
 
@@ -239,7 +258,7 @@
     }
     return [...groups];
   });
-  const times = (name: string) => (name === "floor" ? " ×2" : name === "gem" ? " ×4" : "");
+  const times = (name: string) => (name === "floor" || name === "floor_bar" ? " ×2" : name === "gem" ? " ×4" : "");
 </script>
 
 <section class="box" aria-label="Deck box">
