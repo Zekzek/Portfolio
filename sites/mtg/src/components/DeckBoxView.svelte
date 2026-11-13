@@ -8,9 +8,37 @@
   } = $props();
 
   let host: HTMLDivElement;
+  let section: HTMLElement;
+  // Fullscreen: the whole viewer (controls included) fills the screen. Where the browser can't put an element
+  // in fullscreen (iPhone Safari), it fills the window instead.
+  let full = $state(false);
+  let fakeFull = $state(false);
+  const nativeFull = () => typeof document !== "undefined" && !!document.fullscreenEnabled;
+  async function toggleFull() {
+    if (nativeFull()) {
+      try {
+        if (document.fullscreenElement) await document.exitFullscreen();
+        else await section.requestFullscreen();
+        return;
+      } catch { /* refused: fill the window instead */ }
+    }
+    fakeFull = !fakeFull;
+  }
+  onMount(() => {
+    const sync = () => (full = document.fullscreenElement === section);
+    const esc = (e: KeyboardEvent) => { if (e.key === "Escape" && fakeFull) fakeFull = false; };
+    document.addEventListener("fullscreenchange", sync);
+    addEventListener("keydown", esc);
+    return () => {
+      document.removeEventListener("fullscreenchange", sync);
+      removeEventListener("keydown", esc);
+      if (document.fullscreenElement === section) document.exitFullscreen().catch(() => {});
+    };
+  });
+  const isFull = $derived(full || fakeFull);
   let status = $state("Loading the model…");
   let open = $state(0); // 0 = closed, 1 = opened flat
-  let lift = $state(0); // lifting floors: 0 = flat; to 0.65 the bars rise and tip the stacks; then both lift out
+  let lift = $state(0); // card boxes: 0 = in the book, 1 = lifted out above it
   let cleanup: (() => void) | null = null;
   let setOpen: ((v: number) => void) | null = null;
   let setLift: ((v: number) => void) | null = null;
@@ -35,7 +63,7 @@
       status = `Couldn't download ${name}.stl: ${(e as Error).message}`;
     }
   }
-  const hasFloors = $derived(!!box.parts.floor && !!box.geometry?.floors);
+  const hasBoxes = $derived(!!box.parts.box && !!box.geometry?.boxes);
 
   // Each part in the filament planned for it (box.json "colors"); older builds fall back to the deck's first color.
   const TINT: Record<string, number> = { W: 0xd8cfb4, U: 0x3d6fa8, B: 0x4a4350, R: 0xa8433a, G: 0x3f7a4a };
@@ -75,16 +103,16 @@
         return new THREE.Mesh(geo, mat(color));
       };
       const lighter = new THREE.Color(fallback).offsetHSL(0, 0, 0.08).getHex();
-      // Parts are named by the print they go in: base (the tray), cover, spine; then floor, floor_bar and gem.
+      // Parts are named by the print they go in: base (the back half), cover (the front half), spine; then box and gem.
       const part = (name: string, color: number) => load(box.parts[name], paint(name, color));
-      const [tray, pages, inlayBack, inlayBackGlow, cover, inlayWhite, inlayBorder, inlayGlow, spine, label, floor, floorBar, gem] = await Promise.all([
+      const [tray, pages, inlayBack, inlayBackGlow, cover, coverPages, inlayWhite, inlayBorder, inlayGlow, spine, label, cardBox, gem] = await Promise.all([
         part("base", fallback), part("base_pages", 0xf0ede6), part("base_border", 0xd0703a), part("base_glow", 0x8dff6a),
-        part("cover", lighter), part("cover_frame", 0xf4f4f4), part("cover_border", 0xd0703a), part("cover_glow", 0x8dff6a),
-        part("spine", lighter), part("spine_label", 0xd9b44a),
-        g.floors ? part("floor", 0xb8a58a) : Promise.resolve(null),
-        g.floors ? part("floor_bar", 0xb8a58a) : Promise.resolve(null), part("gem", 0xa64dff),
+        part("cover", lighter), part("cover_pages", 0xf0ede6), part("cover_frame", 0xf4f4f4), part("cover_border", 0xd0703a),
+        part("cover_glow", 0x8dff6a), part("spine", lighter), part("spine_label", 0xd9b44a),
+        g.boxes ? part("box", 0xe8e2d4) : Promise.resolve(null), part("gem", 0xa64dff),
       ]);
       if (!tray || !spine || !cover) throw new Error("missing parts (built before the print-step names? rebuild the box)");
+      if (!g.boxes) throw new Error("this box was built for the older tray design; rebuild it");
       // Everything below is in deckbox.scad's axes (Z up); the model group turns that into three.js's Y up.
       const model = new THREE.Group();
       model.rotation.x = -Math.PI / 2;
@@ -98,7 +126,7 @@
       spine.rotation.y = Math.PI / 2;
       spine.position.x = -g.spine_s;
       if (label) { label.rotation.y = Math.PI / 2; label.position.x = -g.spine_s; }
-      for (const m of [cover, inlayWhite, inlayGlow, inlayBorder]) if (m) { m.rotation.y = Math.PI; m.position.z = g.thick; }
+      for (const m of [cover, coverPages, inlayWhite, inlayGlow, inlayBorder]) if (m) { m.rotation.y = Math.PI; m.position.z = g.thick; }
 
       // Hinges: the spine turns about the back axis, the cover about the front one (both along Y).
       const hinge = (z: number) => {
@@ -116,10 +144,11 @@
       back.local.add(spine, front.pivot);
       if (label) back.local.add(label);
       front.local.add(cover);
+      if (coverPages) front.local.add(coverPages);
       if (inlayWhite) front.local.add(inlayWhite);
       if (inlayGlow) front.local.add(inlayGlow);
       if (inlayBorder) front.local.add(inlayBorder);
-      // the back cover's inlays print in place with the tray, face down
+      // the back cover's inlays print in place with the back half, face down
       for (const m of [inlayBack, inlayBackGlow]) if (m) book.add(m);
       // gems: printed table up at the origin; each sits in its corner socket, inlay_d into the cover
       if (gem && g.gems) {
@@ -130,62 +159,30 @@
         }
       }
 
-      // Two stacks of sleeved cards, filled to this deck's count, each on its lifting floor (if any): a panel
-      // hinged to a lift bar at the binding-side bottom corner. Lifting the bar raises the hinge; the panel
-      // tips about it, its fore end dragging along the bottom. The STLs are the lower well's, in place.
+      // Two card boxes, each holding a stack of sleeved cards filled to this deck's count. The box STL is the
+      // lower one, printed standing on its closed end: turned back to lie in the book, open toward the spine.
       const stackMat = mat(0x2a4d69);
       const perStack = [Math.ceil(box.cards / 2), Math.floor(box.cards / 2)];
-      const ax = g.floor_ax ?? 0, az = g.floor_az ?? 0, len = g.floor_len ?? 1, fr = g.floor_r ?? 0;
-      const units: { unit: InstanceType<typeof THREE.Group>; bar: InstanceType<typeof THREE.Group>; pivot: InstanceType<typeof THREE.Group>; stack: InstanceType<typeof THREE.Mesh> }[] = [];
-      [g.well_y1, g.well_y2].forEach((_y, i) => {
-        const unit = new THREE.Group(); // this well's floor, panel and bar together
-        unit.position.y = i === 0 ? 0 : (g.floor_dy ?? 0);
+      const units: InstanceType<typeof THREE.Group>[] = [];
+      for (const i of [0, 1]) {
+        const unit = new THREE.Group(); // a box and its stack
+        unit.position.y = i === 0 ? 0 : (g.box_dy ?? 0);
         book.add(unit);
-        const bar = new THREE.Group();
-        const pivot = new THREE.Group();
-        pivot.position.set(ax, 0, az);
-        const local = new THREE.Group();
-        local.position.set(-ax, 0, -az);
-        pivot.add(local);
-        unit.add(bar, pivot);
+        if (cardBox) {
+          const m = i === 0 ? cardBox : new THREE.Mesh(cardBox.geometry, cardBox.material);
+          m.rotation.y = -Math.PI / 2;
+          m.position.x = g.box_len ?? 0;
+          unit.add(m);
+        }
         const n = Math.min(perStack[i], g.capacity / 2);
         const sh = Math.max(0.5, n * g.card_t);
         const stack = new THREE.Mesh(new THREE.BoxGeometry(g.well_w - 1.5, g.well_h - 1.5, sh), stackMat);
         stack.position.set(g.well_x + g.well_w / 2, g.well_y1 + g.well_h / 2, g.floor_z + sh / 2);
-        local.add(stack);
-        const copy = (m: InstanceType<typeof THREE.Mesh>) => (i === 0 ? m : new THREE.Mesh(m.geometry, m.material));
-        if (floor) local.add(copy(floor));
-        if (floorBar) {
-          // printed lying on its inside face: turn it back upright, against the binding-side wall
-          const m = copy(floorBar);
-          m.rotation.y = -Math.PI / 2;
-          m.position.x = g.floor_bar_x ?? 0;
-          bar.add(m);
-        }
-        units.push({ unit, bar, pivot, stack });
-      });
-      // The panel's angle with the hinge h up: its fore end's bottom corner stays on the bottom.
-      const tilt = (h: number) => {
-        let lo = 0, hi = Math.PI / 2;
-        for (let k = 0; k < 40; k++) {
-          const m = (lo + hi) / 2;
-          if (h + fr * (1 - Math.cos(m)) - len * Math.sin(m) > 0) lo = m; else hi = m;
-        }
-        return lo;
-      };
-      const hMax = 30; // mm the bar rises before the cards come out
-      setLift = (v) => {
-        const h = Math.min(v / 0.65, 1) * hMax;
-        const out = Math.max(0, (v - 0.65) / 0.35) * 80; // then both parts lift out, clear of the back sleeve
-        const th = tilt(h);
-        for (const u of units) {
-          u.bar.position.z = h;
-          u.pivot.position.z = az + h;
-          u.pivot.rotation.y = th;
-          u.unit.position.z = out;
-          u.stack.visible = v <= 0.65;
-        }
-      };
+        unit.add(stack);
+        units.push(unit);
+      }
+      // Lifting: both boxes rise straight out of the back half, clear of the back cover's hard sleeve.
+      setLift = (v) => { for (const u of units) u.position.z = v * 75; };
       setLift(lift);
 
       // A card's face: w x h with rounded corners (as a real card's, so the window's corners read true), the
@@ -225,8 +222,11 @@
       if (box.counted.commander) display(front.local, g.card_z, commanderImage, false);
       if (g.back_display) display(book, g.back_z ?? 1.6, backImage, true);
 
-      // Opening: the spine swings down flat to the left, and the cover a further quarter turn.
-      setOpen = (v) => { back.pivot.rotation.y = -v * Math.PI / 2; front.pivot.rotation.y = -v * Math.PI / 2; };
+      // The cover swings up on its own hinge first (its walls clear the boxes that way), then the spine folds down.
+      setOpen = (v) => {
+        front.pivot.rotation.y = -Math.min(1, v * 2) * Math.PI / 2;
+        back.pivot.rotation.y = -Math.max(0, v * 2 - 1) * Math.PI / 2;
+      };
       setOpen(open);
 
       const controls = new OrbitControls(camera, renderer.domElement);
@@ -279,18 +279,21 @@
     }
     return [...groups];
   });
-  const times = (name: string) => (name === "floor" || name === "floor_bar" ? " ×2" : name === "gem" ? " ×4" : "");
+  const times = (name: string) => (name === "box" ? " ×2" : name === "gem" ? " ×4" : "");
 </script>
 
-<section class="box" aria-label="Deck box">
+<section class="box" class:full={isFull} class:fake={fakeFull} aria-label="Deck box" bind:this={section}>
   <div class="head">
     <h2>Deck box</h2>
     <p class="meta mono">
       {w} × {h} × {t} mm{box.capacity ? ` · holds ${box.capacity} sleeved cards in two stacks` : ""} · this deck: {box.cards}
       ({box.counted.deck} deck{box.counted.tokens ? ` + ${box.counted.tokens} tokens` : ""}{box.counted.extra ? ` + ${box.counted.extra} extra` : ""}){box.counted.commander ? " + commander in a hard sleeve in the cover" : ""}{box.backCard ? ` + ${box.backCard} in the back cover` : box.geometry?.back_display ? " · a hard sleeve in the back cover for any card" : ""}
-      · {box.geometry?.magnets ?? 4} magnet pairs {box.magnet[0]}×{box.magnet[1]} mm · hinge pins: pipe cleaners{hasFloors ? " · a lifting floor in each well" : ""}
+      · {box.geometry?.magnets ?? 4} magnet pairs {box.magnet[0]}×{box.magnet[1]} mm · hinge pins: pipe cleaners{hasBoxes ? " · two card boxes inside, open toward the spine" : ""}
     </p>
-    <button class="btn quiet" onclick={onClose}>Close</button>
+    <button class="btn quiet" onclick={toggleFull} aria-pressed={isFull} title={isFull ? "Leave fullscreen (Esc)" : "Fill the screen"}>
+      {isFull ? "Exit fullscreen" : "Fullscreen"}
+    </button>
+    {#if !isFull}<button class="btn quiet" onclick={onClose}>Close</button>{/if}
   </div>
   {#if over > 0}<p class="warn">This deck needs {over} more {over === 1 ? "card" : "cards"} of room than the box holds.</p>{/if}
   <div class="stage" bind:this={host}>
@@ -301,10 +304,10 @@
       <span class="eyebrow">Open</span>
       <input type="range" min="0" max="1" step="0.01" bind:value={open} aria-label="Open the book" />
     </label>
-    {#if hasFloors}
+    {#if hasBoxes}
       <label class="lid">
-        <span class="eyebrow">Lift floors</span>
-        <input type="range" min="0" max="1" step="0.01" bind:value={lift} aria-label="Lift the floors" />
+        <span class="eyebrow">Lift boxes</span>
+        <input type="range" min="0" max="1" step="0.01" bind:value={lift} aria-label="Lift the card boxes out" />
       </label>
     {/if}
     <span class="dim">Drag to turn, scroll to zoom.</span>
@@ -329,6 +332,12 @@
   h2 { font-size: var(--step-1); }
   .meta { color: var(--muted); font-size: var(--step--1); flex: 1; }
   .warn { margin: 0; color: var(--danger, #b3412f); font-size: var(--step--1); }
+  /* Fullscreen: the model takes whatever the header and controls leave. */
+  .box.full { border-radius: 0; border: 0; height: 100%; width: 100%; box-sizing: border-box; }
+  .box.fake { position: fixed; inset: 0; z-index: 1000; height: 100dvh;
+    padding: max(var(--space-4), env(safe-area-inset-top)) max(var(--space-4), env(safe-area-inset-right)) max(var(--space-4), env(safe-area-inset-bottom)) max(var(--space-4), env(safe-area-inset-left)); }
+  .box.full .stage { flex: 1; height: auto; min-height: 0; }
+  .box.full .meta { display: none; }
   .stage { position: relative; height: min(30rem, 70vh); border-radius: var(--radius-m); background: var(--bg); overflow: hidden; }
   .stage :global(canvas) { width: 100%; height: 100%; display: block; touch-action: none; }
   .status { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; color: var(--muted); }
