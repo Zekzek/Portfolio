@@ -14,6 +14,7 @@
   import ProxyPanel from "./ProxyPanel.svelte";
   import SampleHand from "./SampleHand.svelte";
   import DeckBoxView from "./DeckBoxView.svelte";
+  import BeetleView from "./BeetleView.svelte";
   import Stats from "./Stats.svelte";
   import ThemeToggleButton from "./ThemeToggleButton.svelte";
 
@@ -191,6 +192,7 @@
   const driftCount = $derived(deck.drift ? deck.drift.onlyInDoc.length + deck.drift.onlyInList.length : 0);
   let showHand = $state(false);
   let showBox = $state(false);
+  let showBeetle = $state(false);
   let copied = $state(false);
   async function copyList() {
     if (!deck.list) return;
@@ -310,6 +312,7 @@
           {#if !editable()}<p class="readonly-note">Showing the last upload. Connect to your PC (bottom left) to edit.</p>{:else}<button class="btn" class:on={editing} onclick={() => { editing = !editing; message = null; }} aria-pressed={editing}>{editing ? "Done editing" : "Edit list"}</button>{/if}
           {#if deck.status !== "pool"}<button class="btn" onclick={() => (showHand = !showHand)} aria-pressed={showHand}>{showHand ? "Hide sample hand" : "Sample hand"}</button>{/if}
           {#if deck.box}<button class="btn" onclick={() => (showBox = !showBox)} aria-pressed={showBox}>{showBox ? "Hide deck box" : "Deck box (3D)"}</button>{/if}
+          {#if deck.box?.beetle}<button class="btn" onclick={() => (showBeetle = !showBeetle)} aria-pressed={showBeetle}>{showBeetle ? "Hide beetle box" : "Beetle box (3D)"}</button>{/if}
           {#if deck.list}<button class="btn" onclick={copyList}>{copied ? "Copied" : "Copy for TappedOut"}</button>{/if}
         </div>
         <Stats {curve} {types} {pips} />
@@ -363,6 +366,9 @@
         {/if}
         {#if showBox && deck.box}
           <DeckBoxView box={deck.box} colors={deck.colors} commanderImage={deck.commanders[0] ? imageFor(deck.commanders[0].name) : null} backImage={deck.box.backCard ? imageFor(deck.box.backCard) : null} onClose={() => (showBox = false)} />
+        {/if}
+        {#if showBeetle && deck.box?.beetle}
+          <BeetleView beetle={deck.box.beetle} label={deck.box.label} onClose={() => (showBeetle = false)} />
         {/if}
         {#if showHand}
           <SampleHand {deck} {cards} {imageFor} {cardHref} onClose={() => (showHand = false)} />

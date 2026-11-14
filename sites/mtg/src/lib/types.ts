@@ -198,6 +198,20 @@ export interface DeckBox {
   magnet: [number, number]; // diameter x height, mm
   lid?: string; // "book"
   geometry?: BoxGeometry | null;
+  beetle?: BeetleBox | null; // an experimental sculpted box (this PC only)
+}
+
+/** The sculpted beetle box (MTG/DeckBox/scarab_ai): parts already in place, in its own axes (mm, z up, head +y). */
+export interface BeetleBox {
+  parts: Record<string, string>; // tray_*, wing_r, wing_l, lid, and each limb (leg_*, mandible_*): STLs to print
+  view?: Record<string, string> | null; // the same parts as colored PLYs, for showing
+  center?: number; // y the limbs pull away from
+  colors?: Record<string, string> | null;
+  hinge: [number, number, number]; // the wings' hinge axes pass through here
+  tilt: number; // degrees the axes drop outward
+  boxes: [number, number, number, number, number, number][]; // card boxes: x, y, z, then size
+  limbs: string[];
+  outside: [number, number, number];
 }
 
 /** deckbox.scad's numbers (mm, its axes: X across the cover, Y up the book, Z through it). */
