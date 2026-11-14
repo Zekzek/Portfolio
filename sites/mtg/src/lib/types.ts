@@ -214,6 +214,7 @@ export interface BeetleBox {
   hinge: [number, number, number]; // the wings' hinge axes pass through here
   tilt: number; // degrees the axes drop outward
   boxes: [number, number, number, number, number, number][]; // card boxes: x, y, z, then size
+  boxTilt?: [number, number, number] | null; // the boxes tipped this many degrees (rear down) about the line y, z along x
   limbs: string[];
   outside: [number, number, number];
 }

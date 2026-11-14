@@ -81,11 +81,17 @@
       scene.add(model);
       for (const m of trayParts) model.add(m);
       // the card boxes, as plain blocks
+      // (tipped about the cavity floor's front edge when the build tilts them: [degrees, y, z of that edge])
       const boxMat = mat(0xe8e2d4);
+      const [tiltDeg, py, pz] = beetle.boxTilt ?? [0, 0, 0];
+      const cards = new THREE.Group();
+      cards.position.set(0, py, pz);
+      cards.rotation.x = (tiltDeg * Math.PI) / 180;
+      model.add(cards);
       for (const [x, y, z, w, l, h] of beetle.boxes) {
         const b = new THREE.Mesh(new THREE.BoxGeometry(w, l, h), boxMat);
-        b.position.set(x + w / 2, y + l / 2, z + h / 2);
-        model.add(b);
+        b.position.set(x + w / 2, y + l / 2 - py, z + h / 2 - pz);
+        cards.add(b);
       }
       // the head plate carries the wings' hinges: lifting it takes them along
       const top = new THREE.Group();
