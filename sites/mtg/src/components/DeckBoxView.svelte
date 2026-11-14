@@ -105,11 +105,12 @@
       const lighter = new THREE.Color(fallback).offsetHSL(0, 0, 0.08).getHex();
       // Parts are named by the print they go in: base (the back half), cover (the front half), spine; then box and gem.
       const part = (name: string, color: number) => load(box.parts[name], paint(name, color));
-      const [tray, pages, inlayBack, inlayBackGlow, cover, coverPages, inlayWhite, inlayBorder, inlayGlow, spine, label, cardBox, gem] = await Promise.all([
+      const [tray, pages, inlayBack, inlayBackGlow, cover, coverPages, inlayWhite, inlayBorder, inlayGlow, spine, label, cardBox, gem, manaInlay] = await Promise.all([
         part("base", fallback), part("base_pages", 0xf0ede6), part("base_border", 0xd0703a), part("base_glow", 0x8dff6a),
         part("cover", lighter), part("cover_pages", 0xf0ede6), part("cover_frame", 0xf4f4f4), part("cover_border", 0xd0703a),
         part("cover_glow", 0x8dff6a), part("spine", lighter), part("spine_label", 0xd9b44a),
         g.boxes ? part("box", 0xe8e2d4) : Promise.resolve(null), part("gem", 0xa64dff),
+        part("spine_mana", 0xf4f4f4),
       ]);
       if (!tray || !spine || !cover) throw new Error("missing parts (built before the print-step names? rebuild the box)");
       if (!g.boxes) throw new Error("this box was built for the older tray design; rebuild it");
@@ -125,7 +126,7 @@
       // spine: printed = rotate -90 about Y, then up by spine_s. cover: printed = flipped about Y, then up by thick.
       spine.rotation.y = Math.PI / 2;
       spine.position.x = -g.spine_s;
-      if (label) { label.rotation.y = Math.PI / 2; label.position.x = -g.spine_s; }
+      for (const m of [label, manaInlay]) if (m) { m.rotation.y = Math.PI / 2; m.position.x = -g.spine_s; }
       for (const m of [cover, coverPages, inlayWhite, inlayGlow, inlayBorder]) if (m) { m.rotation.y = Math.PI; m.position.z = g.thick; }
 
       // Hinges: the spine turns about the back axis, the cover about the front one (both along Y).
@@ -142,7 +143,7 @@
       book.add(tray, back.pivot);
       if (pages) book.add(pages);
       back.local.add(spine, front.pivot);
-      if (label) back.local.add(label);
+      for (const m of [label, manaInlay]) if (m) back.local.add(m);
       front.local.add(cover);
       if (coverPages) front.local.add(coverPages);
       if (inlayWhite) front.local.add(inlayWhite);
