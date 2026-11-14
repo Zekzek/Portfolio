@@ -34,6 +34,7 @@ export interface Deck {
   version: number; // bumps on every change (page or deck.py)
   proxySet?: string | null; // default proxy set (MTG/Proxies/<set>); empty = original cards
   viewers?: "hidden" | null; // "hidden": not uploaded for view-only sign-ins; empty = shown
+  boxStyle?: BoxStyle | null; // the deck box style shown first; empty = book
   updated: string;
   unknown: string[];
   proxyOnly: string[]; // in the DeckGen manifest but not in this list (tokens and back faces excluded)
@@ -117,7 +118,7 @@ export type EditOp =
   | { op: "move"; card: string; category: string }
   | { op: "sideboard"; card: string } // set aside in the deck's Sideboard
   | { op: "set_note"; card: string; note: string }
-  | { op: "set_deck"; field: "status" | "note" | "name" | "proxySet" | "viewers"; value: string };
+  | { op: "set_deck"; field: "status" | "note" | "name" | "proxySet" | "viewers" | "boxStyle"; value: string };
 
 export interface ProxySet {
   id: string;
@@ -183,6 +184,9 @@ export interface GenJob {
   total?: number; done?: number; failed?: number; current?: string | null;
   log?: string[]; started?: string; finished?: string | null; error?: string | null; logFile?: string;
 }
+
+/** Deck box styles (MTG/DeckSite/deckstore.py BOX_STYLES). */
+export type BoxStyle = "book" | "beetle";
 
 /** A deck's 3D-printable box: STL parts plus the sizes they were built for. */
 /** A book-shaped box: its parts are named by print (base, base_pages, ..., cover, cover_*, spine, spine_label, box, gem). */

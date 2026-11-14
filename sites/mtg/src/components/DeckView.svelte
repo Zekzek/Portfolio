@@ -5,6 +5,7 @@
   import { ApiError, editDeck, revertDeck } from "../lib/api";
   import { editable } from "../lib/connection.svelte";
   import { artCount, coverage, deckArt, proxyFor } from "../lib/proxies";
+  import { BOX_STYLE_NAMES, boxStyles, shownBoxStyle } from "../lib/box";
   import type { BackFace, Cards, Deck, DeckArt, DeckEntry, EditOp, Proxies } from "../lib/types";
   import AddCard from "./AddCard.svelte";
   import CardDialog from "./CardDialog.svelte";
@@ -192,7 +193,13 @@
   const driftCount = $derived(deck.drift ? deck.drift.onlyInDoc.length + deck.drift.onlyInList.length : 0);
   let showHand = $state(false);
   let showBox = $state(false);
-  let showBeetle = $state(false);
+  // Deck box style: the one picked here (remembered per deck), else the deck's default, else the book.
+  const boxKey = `deck.boxStyle.${deck.id}`;
+  let pickedBox = $state<string | null>(saved(boxKey, "") || null);
+  const boxChoices = $derived(boxStyles(deck.box));
+  const boxStyle = $derived(shownBoxStyle(deck.box, pickedBox, deck.boxStyle));
+  const boxDefault = $derived(shownBoxStyle(deck.box, null, deck.boxStyle));
+  function pickBox(style: string) { pickedBox = style; remember(boxKey, style); showBox = true; }
   let copied = $state(false);
   async function copyList() {
     if (!deck.list) return;
@@ -311,8 +318,21 @@
           </label>
           {#if !editable()}<p class="readonly-note">Showing the last upload. Connect to your PC (bottom left) to edit.</p>{:else}<button class="btn" class:on={editing} onclick={() => { editing = !editing; message = null; }} aria-pressed={editing}>{editing ? "Done editing" : "Edit list"}</button>{/if}
           {#if deck.status !== "pool"}<button class="btn" onclick={() => (showHand = !showHand)} aria-pressed={showHand}>{showHand ? "Hide sample hand" : "Sample hand"}</button>{/if}
+          {#if boxChoices.length > 1}
+            <label>
+              <span class="eyebrow">Deck box style</span>
+              <select id="box-style" value={boxStyle} onchange={(e) => pickBox(e.currentTarget.value)}>
+                {#each boxChoices as s (s)}<option value={s}>{BOX_STYLE_NAMES[s]}{s === boxDefault ? " (default)" : ""}</option>{/each}
+              </select>
+            </label>
+            {#if editable() && boxStyle !== boxDefault}
+              <button class="link-btn" disabled={busy}
+                onclick={() => edit([{ op: "set_deck", field: "boxStyle", value: boxStyle === "book" ? "" : boxStyle ?? "" }])}>
+                Make this the deck's default box
+              </button>
+            {/if}
+          {/if}
           {#if deck.box}<button class="btn" onclick={() => (showBox = !showBox)} aria-pressed={showBox}>{showBox ? "Hide deck box" : "Deck box (3D)"}</button>{/if}
-          {#if deck.box?.beetle}<button class="btn" onclick={() => (showBeetle = !showBeetle)} aria-pressed={showBeetle}>{showBeetle ? "Hide beetle box" : "Beetle box (3D)"}</button>{/if}
           {#if deck.list}<button class="btn" onclick={copyList}>{copied ? "Copied" : "Copy for TappedOut"}</button>{/if}
         </div>
         <Stats {curve} {types} {pips} />
@@ -364,11 +384,10 @@
             {/each}
           </div>
         {/if}
-        {#if showBox && deck.box}
+        {#if showBox && deck.box && boxStyle === "beetle" && deck.box.beetle}
+          <BeetleView beetle={deck.box.beetle} label={deck.box.label} onClose={() => (showBox = false)} />
+        {:else if showBox && deck.box}
           <DeckBoxView box={deck.box} colors={deck.colors} commanderImage={deck.commanders[0] ? imageFor(deck.commanders[0].name) : null} backImage={deck.box.backCard ? imageFor(deck.box.backCard) : null} onClose={() => (showBox = false)} />
-        {/if}
-        {#if showBeetle && deck.box?.beetle}
-          <BeetleView beetle={deck.box.beetle} label={deck.box.label} onClose={() => (showBeetle = false)} />
         {/if}
         {#if showHand}
           <SampleHand {deck} {cards} {imageFor} {cardHref} onClose={() => (showHand = false)} />
