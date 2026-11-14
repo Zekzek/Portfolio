@@ -1,7 +1,8 @@
 <script lang="ts">
   // The sculpted beetle deck box (an experiment, this PC only): MTG/DeckBox/scarab_ai. Every part's STL comes
   // already in place (z up, mm), so this only moves what moves: the wing covers swing up about their hinges
-  // at the head plate, the head plate lifts off (taking the wings), and the legs and mandibles pull away.
+  // at the head plate, the head plate lifts off (taking the wings) when it's a part of its own ("lid"; newer
+  // builds keep it on the tray), and the legs and mandibles pull away.
   import { onDestroy, onMount } from "svelte";
   import type { BeetleBox } from "../lib/types";
   import { LOCAL_SERVER, authHeaders } from "../lib/connection.svelte";
@@ -65,14 +66,16 @@
       const limbNames = beetle.limbs;
       const trays = Object.keys(beetle.parts).filter((n) => n.startsWith("tray"));
       let done = 0;
-      const total = 3 + trays.length + limbNames.length;
+      const hasLid = "lid" in beetle.parts;
+      const total = 2 + (hasLid ? 1 : 0) + trays.length + limbNames.length;
       const track = <T,>(p: Promise<T>) => p.then((v) => { done++; status = `Loading the model… ${done}/${total}`; return v; });
-      const [wingR, wingL, plate, ...rest] = await Promise.all([
+      const platePromise = hasLid ? track(load("lid", hex(c.lid, 0x24552e))) : Promise.resolve(null);
+      const [wingR, wingL, ...rest] = await Promise.all([
         track(load("wing_r", hex(c.wing_r, 0x2e6b3a))), track(load("wing_l", hex(c.wing_l, 0x2e6b3a))),
-        track(load("lid", hex(c.lid, 0x24552e))),
         ...trays.map((n) => track(load(n, hex(c.tray, 0x3b2f1e)))),
         ...limbNames.map((n) => track(load(n, hex(c.limb, 0xc9a227)))),
       ]);
+      const plate = await platePromise;
       const trayParts = rest.slice(0, trays.length), limbs = rest.slice(trays.length);
 
       // zask_beetle.scad's axes (Z up, head toward +Y) inside a group that turns them to three.js's Y up
@@ -96,7 +99,7 @@
       // the head plate carries the wings' hinges: lifting it takes them along
       const top = new THREE.Group();
       model.add(top);
-      top.add(plate);
+      if (plate) top.add(plate);
       const [hx, hy, hz] = beetle.hinge;
       const t = (beetle.tilt * Math.PI) / 180;
       const hinge = (mesh: InstanceType<typeof THREE.Mesh>, axis: InstanceType<typeof THREE.Vector3>, sign: number) => {
@@ -167,7 +170,7 @@
     <h2>Beetle box</h2>
     <p class="meta mono">
       about {W} × {L} × {H} mm with the legs · an experiment from the Zask art (Hunyuan3D 2.1), this PC only ·
-      two card boxes inside · wings hinge at the head plate · legs and mandibles on magnets
+      two card boxes inside · wings hinge at the head plate{beetle.limbs.length ? " · legs and mandibles on magnets" : ""}
     </p>
     <button class="btn quiet" onclick={onClose}>Close</button>
   </div>
@@ -177,10 +180,14 @@
   <div class="foot">
     <label class="ctl"><span class="eyebrow">Open wings</span>
       <input type="range" min="0" max="1" step="0.01" bind:value={wings} aria-label="Open the wing covers" /></label>
-    <label class="ctl"><span class="eyebrow">Lift head plate</span>
-      <input type="range" min="0" max="1" step="0.01" bind:value={lid} aria-label="Lift the head plate off" /></label>
-    <label class="ctl"><span class="eyebrow">Legs off</span>
-      <input type="range" min="0" max="1" step="0.01" bind:value={apart} aria-label="Pull the legs and mandibles off" /></label>
+    {#if "lid" in beetle.parts}
+      <label class="ctl"><span class="eyebrow">Lift head plate</span>
+        <input type="range" min="0" max="1" step="0.01" bind:value={lid} aria-label="Lift the head plate off" /></label>
+    {/if}
+    {#if beetle.limbs.length}
+      <label class="ctl"><span class="eyebrow">Legs off</span>
+        <input type="range" min="0" max="1" step="0.01" bind:value={apart} aria-label="Pull the legs and mandibles off" /></label>
+    {/if}
     <span class="dim">Drag to turn, scroll to zoom.</span>
     <span class="downloads">
       {#each Object.entries(beetle.parts) as [name, url] (name)}
