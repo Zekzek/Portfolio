@@ -216,6 +216,8 @@ export interface BeetleBox {
   boxes: [number, number, number, number, number, number][]; // card boxes: x, y, z, then size
   boxTilt?: [number, number, number] | null; // the boxes tipped this many degrees (rear down) about the line y, z along x
   limbs: string[];
+  wingHinge?: { open?: number; [wing: string]: { at: [number, number, number]; axis: [number, number, number]; sign: number } | number | undefined } | null; // each wing's own hinge
+  limbAxis?: Record<string, [number, number, number]> | null; // each limb's way out of its socket
   outside: [number, number, number];
 }
 
