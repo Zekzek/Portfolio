@@ -151,6 +151,13 @@
       if (inlayBorder) front.local.add(inlayBorder);
       // the back cover's inlays print in place with the back half, face down
       for (const m of [inlayBack, inlayBackGlow]) if (m) book.add(m);
+      // the back art's other colors (base_art2, base_art3, ...), also in place with the back half
+      const backArt = await Promise.all(Object.keys(box.parts).filter((n) => /^base_art\d+$/.test(n)).map((n) => part(n, 0xe6d3a8)));
+      for (const m of backArt) if (m) book.add(m);
+      // the front's extra inlays (cover_shade_gold, cover_shade_red, cover_plate): printed with the cover, face down
+      const known = new Set(["cover", "cover_pages", "cover_frame", "cover_border", "cover_glow"]);
+      const frontArt = await Promise.all(Object.keys(box.parts).filter((n) => n.startsWith("cover_") && !known.has(n)).map((n) => part(n, 0x3c3f44)));
+      for (const m of frontArt) if (m) { m.rotation.y = Math.PI; m.position.z = g.thick; front.local.add(m); }
       // gems: printed table up at the origin; each sits in its corner socket, inlay_d into the cover
       if (gem && g.gems) {
         for (const [x, y] of [[g.gem_x0, g.gem_y0], [g.gem_x1, g.gem_y0], [g.gem_x0, g.gem_y1], [g.gem_x1, g.gem_y1]]) {
