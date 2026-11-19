@@ -51,7 +51,12 @@
     const headers = url.startsWith(LOCAL_SERVER) ? await authHeaders() : {};
     const r = await fetch(url, { headers });
     if (!r.ok) throw new Error(`fetch for "${url}" responded with ${r.status}: ${r.statusText}`);
-    return r.arrayBuffer();
+    const data = await r.arrayBuffer();
+    // deckbox.py's parts come gzipped (<part>.stl.gz, a few MB instead of tens): unpack them here. Checked by
+    // the gzip header, so plain STLs from older builds (or a server that already unpacked them) still load.
+    const head = new Uint8Array(data, 0, Math.min(2, data.byteLength));
+    if (head[0] !== 0x1f || head[1] !== 0x8b) return data;
+    return new Response(new Blob([data]).stream().pipeThrough(new DecompressionStream("gzip"))).arrayBuffer();
   }
   async function download(name: string, url: string) {
     try {
