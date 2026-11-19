@@ -88,10 +88,19 @@
       host.appendChild(renderer.domElement);
       const scene = new THREE.Scene();
       const camera = new THREE.PerspectiveCamera(35, 1, 1, 3000);
-      scene.add(new THREE.HemisphereLight(0xffffff, 0x404040, 1.6));
-      const sun = new THREE.DirectionalLight(0xffffff, 2.2);
+      // Lit from above, with a fill from below and a soft light at the camera, so the underside and the
+      // side facing away from the sun still read when turned toward you.
+      scene.add(new THREE.HemisphereLight(0xffffff, 0x8a8a8a, 1.3));
+      const sun = new THREE.DirectionalLight(0xffffff, 1.9);
       sun.position.set(120, 260, 160);
       scene.add(sun);
+      const under = new THREE.DirectionalLight(0xffffff, 0.8);
+      under.position.set(-100, -240, -80);
+      scene.add(under);
+      const head = new THREE.DirectionalLight(0xffffff, 0.7);
+      head.position.set(0, 0, 1);  // follows the camera
+      camera.add(head);
+      scene.add(camera);
 
       const mat = (color: number, extra: Record<string, unknown> = {}) =>
         new THREE.MeshStandardMaterial({ color, roughness: 0.65, metalness: 0.05, ...extra });
