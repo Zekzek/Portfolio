@@ -71,7 +71,9 @@ export interface ArtTarget {
   card: string;
 }
 
-export const pickAttempt = (t: ArtTarget, n: number) => post("pick", { ...t, n }).then((d) => d.message ?? "");
+/** Use attempt n; with fromStyle, that style's attempt n is copied into t.style (framed there) and used. */
+export const pickAttempt = (t: ArtTarget, n: number, fromStyle?: string) =>
+  post("pick", { ...t, n, ...(fromStyle ? { from_style: fromStyle } : {}) }).then((d) => d.message ?? "");
 export const queueReroll = (t: ArtTarget, note: string) => post("reroll", { ...t, note }).then((d) => d.message ?? "");
 export const unqueueReroll = (t: ArtTarget) => post("unqueue", t).then((d) => d.message ?? "");
 export const startManifest = (deck: string) => post("deckgen/new", { deck }).then((d) => d.message ?? "");

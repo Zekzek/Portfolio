@@ -16,6 +16,18 @@
   let message = $state<{ ok: boolean; text: string } | null>(null);
 
   const current = $derived(cardArt[styleId]);
+  // Other styles' attempts, to use in this style (copied in and framed here). One already copied shows
+  // up in this style's own attempts instead, so it isn't listed twice.
+  const pad3 = (n: number) => String(n).padStart(3, "0");
+  const borrowable = $derived.by(() => {
+    if (!current) return [];
+    const copied = new Set(current.attempts.map((a) => a.fromStyle).filter(Boolean));
+    return art.styles
+      .filter((s) => s.id !== styleId)
+      .map((s) => ({ id: s.id, attempts: (cardArt[s.id]?.attempts ?? []).filter((a) => !copied.has(`${s.id}/${pad3(a.n)}.png`)) }))
+      .filter((s) => s.attempts.length > 0);
+  });
+  const fromLabel = (f: string) => { const [s, file] = f.split("/"); return `from ${s} #${parseInt(file, 10)}`; };
   // Copies of this art on the print sheets (the manifest's count:, the same in every style).
   const printCount = $derived(art.counts?.[cardName] ?? 1);
   let copies = $state(1);
@@ -93,12 +105,33 @@
                   onclick={() => act(`Using attempt ${a.n}. The printed card was re-rendered.`, () => pickAttempt(target, a.n))}
                   aria-label={inUse ? `Attempt ${a.n}, in use` : `Use attempt ${a.n}`}>
                   <img src={a.url} alt="" loading="lazy" />
-                  <span class="tag mono">#{a.n}{inUse ? " · in use" : ""}{a.imported ? " · imported" : ""}</span>
+                  <span class="tag mono">#{a.n}{inUse ? " · in use" : ""}{a.imported ? " · imported" : ""}{a.fromStyle ? ` · ${fromLabel(a.fromStyle)}` : ""}</span>
                 </button>
                 {#if a.note}<p class="anote">“{a.note}”</p>{/if}
               </li>
             {/each}
           </ul>
+        {/if}
+
+        {#if editable() && borrowable.length > 0}
+          <details class="borrow">
+            <summary class="eyebrow">From other styles <span class="dim">· click one to use its art in {styleId}</span></summary>
+            {#each borrowable as s (s.id)}
+              <p class="dim mono">{s.id}</p>
+              <ul role="list">
+                {#each s.attempts as a (a.n)}
+                  <li>
+                    <button class="attempt" disabled={busy}
+                      onclick={() => act(`Using ${s.id} #${a.n} in ${styleId}. It was copied in as a new attempt and the printed card was re-rendered.`, () => pickAttempt(target, a.n, s.id))}
+                      aria-label={`Use ${s.id} attempt ${a.n} in ${styleId}`}>
+                      <img src={a.url} alt="" loading="lazy" />
+                      <span class="tag mono">{s.id} #{a.n}</span>
+                    </button>
+                  </li>
+                {/each}
+              </ul>
+            {/each}
+          </details>
         {/if}
 
         <div class="reroll">
@@ -157,6 +190,9 @@
   .tag { font-size: var(--step--2); padding: 0.25rem 0.4rem; text-align: left; color: var(--muted); }
   .in-use .tag { color: var(--good); }
   .anote { font-size: var(--step--2); color: var(--faint); margin-top: 2px; }
+  .borrow { display: flex; flex-direction: column; gap: var(--space-2); }
+  .borrow summary { cursor: pointer; }
+  .borrow ul { list-style: none; padding: 0; margin: var(--space-2) 0 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(7rem, 1fr)); gap: var(--space-2); }
 
   .copies { display: flex; flex-direction: column; gap: var(--space-1); margin-top: var(--space-2); }
   .copies input { width: 4.5rem; flex: none; font: inherit; font-size: var(--step--1); color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-m); padding: 0.4rem 0.5rem; }

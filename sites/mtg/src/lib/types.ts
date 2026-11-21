@@ -80,6 +80,8 @@ export interface Attempt {
   url: string;
   note: string;
   imported: boolean;
+  /** "style/NNN.png" when this attempt was copied in from another style's attempt. */
+  fromStyle?: string | null;
 }
 
 export interface StyleArt {
