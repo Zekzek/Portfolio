@@ -49,7 +49,15 @@
   // which plain loaders and download links don't send; signed bucket links and local URLs need nothing.
   async function fetchPart(url: string): Promise<ArrayBuffer> {
     const headers = url.startsWith(LOCAL_SERVER) ? await authHeaders() : {};
-    const r = await fetch(url, { headers });
+    // Retried: a box has ~20 parts, and while the deck's card images load too, this PC's server sometimes refuses
+    // a connection ("Failed to fetch"); one refusal shouldn't cost the whole model.
+    let r: Response | null = null;
+    for (let tries = 0; ; tries++) {
+      try { r = await fetch(url, { headers }); break; } catch (e) {
+        if (tries >= 3) throw e;
+        await new Promise((ok) => setTimeout(ok, 400 * 2 ** tries));
+      }
+    }
     if (!r.ok) throw new Error(`fetch for "${url}" responded with ${r.status}: ${r.statusText}`);
     const data = await r.arrayBuffer();
     // deckbox.py's parts come gzipped (<part>.stl.gz, a few MB instead of tens): unpack them here. Checked by
@@ -141,7 +149,11 @@
       spine.rotation.y = Math.PI / 2;
       spine.position.x = -g.spine_s;
       for (const m of [label, manaInlay]) if (m) { m.rotation.y = Math.PI / 2; m.position.x = -g.spine_s; }
-      for (const m of [cover, coverPages, inlayWhite, inlayGlow, inlayBorder]) if (m) { m.rotation.y = Math.PI; m.position.z = g.thick; }
+      // cover_up: the front half prints face up in one piece (its seam on the bed), so it only goes back up by seam_z
+      const coverUp = !!g.cover_up;
+      for (const m of [cover, coverPages, inlayWhite, inlayGlow, inlayBorder]) if (m) {
+        if (coverUp) m.position.z = g.seam_z ?? 0; else { m.rotation.y = Math.PI; m.position.z = g.thick; }
+      }
 
       // Hinges: the spine turns about the back axis, the cover about the front one (both along Y).
       const hinge = (z: number) => {
@@ -172,6 +184,10 @@
       const known = new Set(["cover", "cover_pages", "cover_frame", "cover_border", "cover_glow"]);
       const frontArt = await Promise.all(Object.keys(box.parts).filter((n) => n.startsWith("cover_") && !known.has(n)).map((n) => part(n, 0x3c3f44)));
       for (const m of frontArt) if (m) { m.rotation.y = Math.PI; m.position.z = g.thick; front.local.add(m); }
+      // the face's parts (face_ribbon, face_gold, ...): a face plate printed face up and glued onto the cover's face, or
+      // (cover_up) the relief printed with the cover, set into its face
+      const face = await Promise.all(Object.keys(box.parts).filter((n) => n.startsWith("face_")).map((n) => part(n, 0x4a4e55)));
+      for (const m of face) if (m) { m.position.z = coverUp ? g.seam_z ?? 0 : g.face_z ?? g.thick; front.local.add(m); }
       // gems: printed table up at the origin; each sits in its corner socket, inlay_d into the cover
       if (gem && g.gems) {
         for (const [x, y] of [[g.gem_x0, g.gem_y0], [g.gem_x1, g.gem_y0], [g.gem_x0, g.gem_y1], [g.gem_x1, g.gem_y1]]) {

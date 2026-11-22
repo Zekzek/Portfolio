@@ -234,6 +234,6 @@ export interface BoxGeometry {
   well_x: number; well_y1: number; well_y2: number; well_w: number; well_h: number; floor_z: number;
   card_t: number; magnets: number;
   // the card boxes: present, their length (x), how far the upper one is from the lower, and the shell's seam
-  panel_t?: number; pages_z?: number; inlay_d?: number; gems?: number; gem_x0?: number; gem_x1?: number; gem_y0?: number; gem_y1?: number;
-  boxes?: number; box_len?: number; box_dy?: number; seam_z?: number;
+  panel_t?: number; pages_z?: number; inlay_d?: number; face_z?: number; gems?: number; gem_x0?: number; gem_x1?: number; gem_y0?: number; gem_y1?: number;
+  boxes?: number; box_len?: number; box_dy?: number; seam_z?: number; cover_up?: number;
 }
