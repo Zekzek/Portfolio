@@ -198,6 +198,7 @@ export interface DeckBox {
   capacity?: number | null; // what the box holds (the same for every deck)
   counted: { deck: number; commander?: number; back?: number; tokens: number; extra: number };
   backCard?: string | null; // the card in the back cover's hard sleeve
+  backInsert?: { image: string; w: number; h: number } | null; // a printed card there instead (DeckBox/print), mm
   colors?: Record<string, string> | null; // part -> the filament color planned for it ("base_pages": the back half's walls)
   outside: [number, number, number]; // mm: width x height x thickness, closed
   label?: string | null;

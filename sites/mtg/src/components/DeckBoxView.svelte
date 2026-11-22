@@ -3,8 +3,10 @@
   import type { DeckBox } from "../lib/types";
   import { LOCAL_SERVER, authHeaders } from "../lib/connection.svelte";
 
-  let { box, colors, commanderImage = null, backImage = null, onClose }: {
-    box: DeckBox; colors: string | null; commanderImage?: string | null; backImage?: string | null; onClose: () => void;
+  // backSize: the back card's size in mm when it isn't a Magic card (a printed insert, box.backInsert).
+  let { box, colors, commanderImage = null, backImage = null, backSize = null, onClose }: {
+    box: DeckBox; colors: string | null; commanderImage?: string | null; backImage?: string | null;
+    backSize?: [number, number] | null; onClose: () => void;
   } = $props();
 
   let host: HTMLDivElement;
@@ -65,6 +67,13 @@
     const head = new Uint8Array(data, 0, Math.min(2, data.byteLength));
     if (head[0] !== 0x1f || head[1] !== 0x8b) return data;
     return new Response(new Blob([data]).stream().pipeThrough(new DecompressionStream("gzip"))).arrayBuffer();
+  }
+  // An image from this PC's server needs the sign-in too (the printed back card); other links load as they are.
+  async function loadImage(url: string): Promise<string> {
+    if (!url.startsWith(LOCAL_SERVER)) return url;
+    const r = await fetch(url, { headers: await authHeaders() });
+    if (!r.ok) throw new Error(`${url}: ${r.status}`);
+    return URL.createObjectURL(await r.blob());
   }
   async function download(name: string, url: string) {
     try {
@@ -240,7 +249,9 @@
       };
       // A card in its hard sleeve behind a window: the commander in the cover, and one in the back cover.
       // back = true: it faces out of the back (turned over about Y, so it reads upright from behind).
-      const display = (parent: InstanceType<typeof THREE.Group>, z: number, image: string | null, back: boolean) => {
+      // A Magic card unless `size` says otherwise (a printed, square-cut insert).
+      const display = (parent: InstanceType<typeof THREE.Group>, z: number, image: string | null, back: boolean,
+                       size: [number, number] | null = null) => {
         const out = back ? -1 : 1;
         const sleeve = new THREE.Mesh(new THREE.PlaneGeometry(76, 102),
           mat(0xe8eef2, { transparent: true, opacity: 0.35, side: THREE.DoubleSide }));
@@ -248,9 +259,11 @@
         parent.add(sleeve);
         // Not awaited: the page's own card images can keep it queued for a while, and the box shouldn't wait.
         if (image) {
-          new THREE.TextureLoader().setCrossOrigin("anonymous").loadAsync(image).then((tex) => {
+          loadImage(image).then((src) => new THREE.TextureLoader().setCrossOrigin("anonymous").loadAsync(src)).then((tex) => {
             tex.colorSpace = THREE.SRGBColorSpace;
-            const card = new THREE.Mesh(cardShape(63, 88, 3.2), new THREE.MeshBasicMaterial({ map: tex }) /* faces out only */);
+            tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+            const shape = size ? cardShape(size[0], size[1], 0.6) : cardShape(63, 88, 3.2);
+            const card = new THREE.Mesh(shape, new THREE.MeshBasicMaterial({ map: tex }) /* faces out only */);
             card.position.set(g.window_x, g.window_y, z - 0.2 * out);
             if (back) card.rotation.y = Math.PI;
             parent.add(card);
@@ -258,7 +271,7 @@
         }
       };
       if (box.counted.commander) display(front.local, g.card_z, commanderImage, false);
-      if (g.back_display) display(book, g.back_z ?? 1.6, backImage, true);
+      if (g.back_display) display(book, g.back_z ?? 1.6, backImage, true, backSize);
 
       // The cover swings up on its own hinge first (its walls clear the boxes that way), then the spine folds down.
       setOpen = (v) => {
@@ -325,7 +338,7 @@
     <h2>Deck box</h2>
     <p class="meta mono">
       {w} × {h} × {t} mm{box.capacity ? ` · holds ${box.capacity} sleeved cards in two stacks` : ""} · this deck: {box.cards}
-      ({box.counted.deck} deck{box.counted.tokens ? ` + ${box.counted.tokens} tokens` : ""}{box.counted.extra ? ` + ${box.counted.extra} extra` : ""}){box.counted.commander ? " + commander in a hard sleeve in the cover" : ""}{box.backCard ? ` + ${box.backCard} in the back cover` : box.geometry?.back_display ? " · a hard sleeve in the back cover for any card" : ""}
+      ({box.counted.deck} deck{box.counted.tokens ? ` + ${box.counted.tokens} tokens` : ""}{box.counted.extra ? ` + ${box.counted.extra} extra` : ""}){box.counted.commander ? " + commander in a hard sleeve in the cover" : ""}{box.backCard ? ` + ${box.backCard} in the back cover` : box.backInsert ? " + a printed card in the back cover" : box.geometry?.back_display ? " · a hard sleeve in the back cover for any card" : ""}
       · {box.geometry?.magnets ?? 4} magnet pairs {box.magnet[0]}×{box.magnet[1]} mm · hinge pins: pipe cleaners{hasBoxes ? " · two card boxes inside, open toward the spine" : ""}
     </p>
     <button class="btn quiet" onclick={toggleFull} aria-pressed={isFull} title={isFull ? "Leave fullscreen (Esc)" : "Fill the screen"}>
