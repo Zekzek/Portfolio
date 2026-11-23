@@ -4,6 +4,8 @@
   import type { Art, Cards, Deck, Proxies } from "../lib/types";
   import ThemeToggleButton from "./ThemeToggleButton.svelte";
   import Mana from "./Mana.svelte";
+  import Bookshelf from "./Bookshelf.svelte";
+  import { families as familiesOf } from "../lib/shelf";
   import { STATUS_LABEL, countLabel } from "../lib/labels";
 
   import { HOSTED, signOut } from "../lib/hosted";
@@ -34,15 +36,11 @@
   const hiddenCount = $derived(decks.filter((d) => d.viewers === "hidden").length);
 
   // Families: each deck without a parent, followed by its forks (and their forks).
-  const families = $derived.by(() => {
-    const ids = new Set(decks.map((d) => d.id));
-    const roots = decks.filter((d) => !d.parent || !ids.has(d.parent));
-    const childrenOf = (id: string): Deck[] => decks.filter((d) => d.parent === id).flatMap((d) => [d, ...childrenOf(d.id)]);
-    return roots.map((r) => {
-      const members = [r, ...childrenOf(r.id)];
-      return { root: r, members, listed: members.filter((m) => m.status !== "no_list") };
-    });
-  });
+  const families = $derived(familiesOf(decks));
+
+  // Shelf (the printed boxes' spines) or tiles, remembered per browser.
+  let view = $state<"shelf" | "tiles">((() => { try { return localStorage.getItem("decks.view") === "tiles" ? "tiles" : "shelf"; } catch { return "shelf"; } })());
+  function setView(v: "shelf" | "tiles") { view = v; try { localStorage.setItem("decks.view", v); } catch {} }
 
   // Each commander's art (no card frame): picked in DeckGen for a deck with a proxy set, else the original
   // art crop; partners side by side.
@@ -65,6 +63,10 @@
         <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" stroke-width="2"></circle><path d="M15.5 15.5 21 21" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path></svg>
         Search all decks
       </a>
+      <div class="views" role="group" aria-label="Show decks as">
+        <button class:on={view === "shelf"} aria-pressed={view === "shelf"} onclick={() => setView("shelf")}>Shelf</button>
+        <button class:on={view === "tiles"} aria-pressed={view === "tiles"} onclick={() => setView("tiles")}>Tiles</button>
+      </div>
       <ThemeToggleButton />
       {#if HOSTED}
         <button class="signout" onclick={() => signOut()} title={email ? `Signed in as ${email}` : undefined}>Sign out</button>
@@ -72,6 +74,19 @@
     </div>
   </header>
 
+  {#snippet shown(d: Deck)}
+    {#if editable()}
+      <label class="viewers" class:warn={d.viewers === "hidden"} title="View-only sign-ins on the hosted site see this deck only when this is checked">
+        <input type="checkbox" checked={d.viewers !== "hidden"} disabled={saving !== null}
+          onchange={(e) => setShown(d, e.currentTarget.checked)} />
+        {saving === d.id ? "Saving…" : d.viewers === "hidden" ? "Hidden from viewers" : "Shown to viewers"}
+      </label>
+    {/if}
+  {/snippet}
+
+  {#if view === "shelf"}
+    <Bookshelf {decks} {cards} {proxies} {saving} onShown={editable() ? setShown : undefined} />
+  {:else}
   {#each families as fam (fam.root.id)}
     <section class="family" aria-labelledby={`fam-${fam.root.id}`}>
       <div class="fam-head">
@@ -105,18 +120,13 @@
                 {#if d.note}<p class="note">{d.note}</p>{/if}
               </div>
             </a>
-            {#if editable()}
-              <label class="viewers" title="View-only sign-ins on the hosted site see this deck only when this is checked">
-                <input type="checkbox" checked={d.viewers !== "hidden"} disabled={saving !== null}
-                  onchange={(e) => setShown(d, e.currentTarget.checked)} />
-                {saving === d.id ? "Saving…" : d.viewers === "hidden" ? "Hidden from viewers" : "Shown to viewers"}
-              </label>
-            {/if}
+            {@render shown(d)}
           </li>
         {/each}
       </ul>
     </section>
   {/each}
+  {/if}
 </div>
 
 <style>
@@ -129,7 +139,7 @@
     gap: var(--space-7);
   }
   .top { display: flex; justify-content: space-between; align-items: start; gap: var(--space-4); flex-wrap: wrap; }
-  .tools { display: flex; gap: var(--space-2); align-items: center; }
+  .tools { display: flex; gap: var(--space-2); align-items: center; flex-wrap: wrap; }
   .search-link {
     display: inline-flex; align-items: center; gap: var(--space-2);
     min-width: 14rem; padding: 0.45rem 0.8rem; border: 1px solid var(--line); border-radius: var(--radius-m);
@@ -165,7 +175,11 @@
   .hidden-deck .tile { opacity: 0.55; border-style: dashed; }
   .viewers { display: inline-flex; align-items: center; gap: var(--space-2); font-size: var(--step--1); color: var(--muted); cursor: pointer; align-self: start; }
   .viewers input { accent-color: var(--accent); }
-  .hidden-deck .viewers { color: var(--warn); }
+  .viewers.warn { color: var(--warn); }
+  .views { display: inline-flex; border: 1px solid var(--line); border-radius: var(--radius-m); overflow: hidden; }
+  .views button { font: inherit; font-size: var(--step--1); padding: 0.45rem 0.75rem; border: 0; background: transparent; color: var(--muted); cursor: pointer; }
+  .views button + button { border-left: 1px solid var(--line); }
+  .views button.on { background: var(--surface-2); color: var(--fg); }
   .problem { color: var(--warn); font-size: var(--step--1); margin-top: var(--space-1); }
   .art {
     aspect-ratio: 16 / 7;

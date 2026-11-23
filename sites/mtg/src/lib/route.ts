@@ -7,12 +7,16 @@
 //   #/compare/<id>,<id>/card/<name>     ...with a card open
 //   #/search/<query>                    search every deck
 //   #/search/<query>/card/<name>        ...with a card open
+//   #/boxshot/<id>/<front|back|spine>   one side of a deck's box, alone (DeckBox/shots.py photographs it)
 export type Route =
   | { view: "decks" }
   | { view: "deck"; deck: string; card?: string }
   | { view: "history"; deck: string }
   | { view: "compare"; decks: string[]; card?: string }
-  | { view: "search"; q: string; card?: string };
+  | { view: "search"; q: string; card?: string }
+  | { view: "boxshot"; deck: string; side: BoxSide };
+
+export type BoxSide = "front" | "back" | "spine";
 
 export function parseRoute(hash: string): Route {
   const parts = hash.replace(/^#\/?/, "").split("/").map(decodeURIComponent);
@@ -25,6 +29,9 @@ export function parseRoute(hash: string): Route {
     const decks = parts[1].split(",").filter(Boolean);
     return card ? { view: "compare", decks, card } : { view: "compare", decks };
   }
+  if (parts[0] === "boxshot" && parts[1] && ["front", "back", "spine"].includes(parts[2])) {
+    return { view: "boxshot", deck: parts[1], side: parts[2] as BoxSide };
+  }
   if (parts[0] === "search") {
     const q = parts[1] ?? "";
     return card ? { view: "search", q, card } : { view: "search", q };
@@ -34,6 +41,7 @@ export function parseRoute(hash: string): Route {
 
 export function href(route: Route): string {
   if (route.view === "decks") return "#/";
+  if (route.view === "boxshot") return `#/boxshot/${encodeURIComponent(route.deck)}/${route.side}`;
   if (route.view === "history") return `#/deck/${encodeURIComponent(route.deck)}/history`;
   const base =
     route.view === "deck" ? `#/deck/${encodeURIComponent(route.deck)}`

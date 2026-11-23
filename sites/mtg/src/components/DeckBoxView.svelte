@@ -4,10 +4,14 @@
   import { LOCAL_SERVER, authHeaders } from "../lib/connection.svelte";
 
   // backSize: the back card's size in mm when it isn't a Magic card (a printed insert, box.backInsert).
-  let { box, colors, commanderImage = null, backImage = null, backSize = null, onClose }: {
+  // shot: draw one side of the closed book, flat on (an orthographic camera), on a clear background, once
+  // everything (card images too) has loaded; then document.body.dataset.shot = "ready" (DeckBox/shots.py).
+  let { box, colors, commanderImage = null, backImage = null, backSize = null, onClose = () => {}, shot = null }: {
     box: DeckBox; colors: string | null; commanderImage?: string | null; backImage?: string | null;
-    backSize?: [number, number] | null; onClose: () => void;
+    backSize?: [number, number] | null; onClose?: () => void; shot?: "front" | "back" | "spine" | null;
   } = $props();
+  /** Pixels per mm in a shot. */
+  const SHOT_PX = 10;
 
   let host: HTMLDivElement;
   let section: HTMLElement;
@@ -105,7 +109,7 @@
       const { STLLoader } = await import("three/examples/jsm/loaders/STLLoader.js");
       const { OrbitControls } = await import("three/examples/jsm/controls/OrbitControls.js");
 
-      const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: !!shot });
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
       host.appendChild(renderer.domElement);
       const scene = new THREE.Scene();
@@ -250,6 +254,7 @@
       // A card in its hard sleeve behind a window: the commander in the cover, and one in the back cover.
       // back = true: it faces out of the back (turned over about Y, so it reads upright from behind).
       // A Magic card unless `size` says otherwise (a printed, square-cut insert).
+      const pending: Promise<unknown>[] = []; // card images still loading (a shot waits for them)
       const display = (parent: InstanceType<typeof THREE.Group>, z: number, image: string | null, back: boolean,
                        size: [number, number] | null = null) => {
         const out = back ? -1 : 1;
@@ -259,7 +264,7 @@
         parent.add(sleeve);
         // Not awaited: the page's own card images can keep it queued for a while, and the box shouldn't wait.
         if (image) {
-          loadImage(image).then((src) => new THREE.TextureLoader().setCrossOrigin("anonymous").loadAsync(src)).then((tex) => {
+          const job = loadImage(image).then((src) => new THREE.TextureLoader().setCrossOrigin("anonymous").loadAsync(src)).then((tex) => {
             tex.colorSpace = THREE.SRGBColorSpace;
             tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
             const shape = size ? cardShape(size[0], size[1], 0.6) : cardShape(63, 88, 3.2);
@@ -268,6 +273,7 @@
             if (back) card.rotation.y = Math.PI;
             parent.add(card);
           }, () => {});
+          pending.push(job);
         }
       };
       if (box.counted.commander) display(front.local, g.card_z, commanderImage, false);
@@ -279,6 +285,36 @@
         back.pivot.rotation.y = -Math.max(0, v * 2 - 1) * Math.PI / 2;
       };
       setOpen(open);
+
+      if (shot) {
+        // Flat on to one side of the closed book. The model's axes (deckbox.scad's, turned Y up): the front cover
+        // faces +Y, the back -Y, the spine -X; the book's head (scad +Y) is -Z, so that's "up" in every shot.
+        await Promise.all(pending);
+        scene.updateMatrixWorld(true); // nothing has been drawn yet, so the parts' world matrices are stale
+        const bb = new THREE.Box3().setFromObject(book);
+        const c = bb.getCenter(new THREE.Vector3());
+        const s = bb.getSize(new THREE.Vector3());
+        // across the picture: the book's width, or (the spine) its thickness; up the picture: its height
+        const across = shot === "spine" ? s.y : s.x;
+        const cam = new THREE.OrthographicCamera(-across / 2, across / 2, s.z / 2, -s.z / 2, 0.1, 2000);
+        const far = 800;
+        cam.position.set(c.x + (shot === "spine" ? -far : 0), c.y + (shot === "front" ? far : shot === "back" ? -far : 0), c.z);
+        cam.up.set(0, 0, -1);
+        cam.lookAt(c);
+        cam.updateProjectionMatrix();
+        cam.add(head);
+        scene.add(cam);
+        const wpx = Math.round(across * SHOT_PX), hpx = Math.round(s.z * SHOT_PX);
+        renderer.setPixelRatio(1);
+        renderer.setSize(wpx, hpx, false);
+        host.style.width = `${wpx}px`;
+        host.style.height = `${hpx}px`;
+        renderer.render(scene, cam);
+        document.body.dataset.shot = "ready";
+        status = "";
+        cleanup = () => { renderer.dispose(); renderer.domElement.remove(); };
+        return;
+      }
 
       const controls = new OrbitControls(camera, renderer.domElement);
       // Between the closed book and the opened one, looking down at the cover from its bottom edge.
@@ -317,6 +353,7 @@
       };
     } catch (e) {
       status = `Couldn't show the model: ${(e as Error).message}`;
+      if (shot) document.body.dataset.shot = `error: ${(e as Error).message}`;
     }
   });
   onDestroy(() => cleanup?.());
@@ -333,6 +370,9 @@
   const times = (name: string) => (name === "box" ? " ×2" : name === "gem" ? " ×4" : "");
 </script>
 
+{#if shot}
+  <div class="shot" bind:this={host}>{#if status}<p class="status">{status}</p>{/if}</div>
+{:else}
 <section class="box" class:full={isFull} class:fake={fakeFull} aria-label="Deck box" bind:this={section}>
   <div class="head">
     <h2>Deck box</h2>
@@ -373,8 +413,11 @@
     </span>
   </div>
 </section>
+{/if}
 
 <style>
+  .shot { position: relative; }
+  .shot :global(canvas) { display: block; width: 100%; height: 100%; }
   .box {
     border: 1px solid var(--line); border-radius: var(--radius-m); background: var(--surface);
     padding: var(--space-4); display: flex; flex-direction: column; gap: var(--space-3);

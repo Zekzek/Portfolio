@@ -7,6 +7,7 @@
   import type { Art, Cards, Deck, Proxies } from "../lib/types";
   import CompareView from "./CompareView.svelte";
   import DeckList from "./DeckList.svelte";
+  import BoxShot from "./BoxShot.svelte";
   import SearchView from "./SearchView.svelte";
   import DeckView from "./DeckView.svelte";
   import HistoryView from "./HistoryView.svelte";
@@ -111,7 +112,7 @@
     }
   });
 
-  const deck = $derived(route.view === "deck" || route.view === "history" ? decks?.find((d) => d.id === route.deck) : undefined);
+  const deck = $derived(route.view === "deck" || route.view === "history" || route.view === "boxshot" ? decks?.find((d) => d.id === route.deck) : undefined);
 </script>
 
 {#if notice}<p class="notice" role="status">{notice}</p>{/if}
@@ -138,6 +139,8 @@
   {#key deck.id}
     <DeckView {deck} {decks} {cards} {proxies} art={art[deck.id]} openCard={route.view === "deck" ? route.card : undefined} onArtChanged={reloadArt} onDataChanged={load} />
   {/key}
+{:else if route.view === "boxshot" && deck?.box}
+  <BoxShot {deck} {cards} {proxies} side={route.side} />
 {:else if route.view === "history" && deck}
   <HistoryView {deck} onDataChanged={load} />
 {:else if route.view === "compare"}
