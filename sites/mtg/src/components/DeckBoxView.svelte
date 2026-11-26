@@ -190,8 +190,8 @@
       if (inlayBorder) front.local.add(inlayBorder);
       // the back cover's inlays print in place with the back half, face down
       for (const m of [inlayBack, inlayBackGlow]) if (m) book.add(m);
-      // the back art's other colors (base_art2, base_art3, ...), also in place with the back half
-      const backArt = await Promise.all(Object.keys(box.parts).filter((n) => /^base_art\d+$/.test(n)).map((n) => part(n, 0xe6d3a8)));
+      // the back art's other colors (base_art2, base_art3, ...; or a deck's own art: base_art_gold, ...), in place with the back half
+      const backArt = await Promise.all(Object.keys(box.parts).filter((n) => /^base_art(\d+|_\w+)$/.test(n)).map((n) => part(n, 0xe6d3a8)));
       for (const m of backArt) if (m) book.add(m);
       // the front's extra inlays (cover_shade_gold, cover_shade_red, cover_plate): printed with the cover, face down
       const known = new Set(["cover", "cover_pages", "cover_frame", "cover_border", "cover_glow"]);
