@@ -238,4 +238,6 @@ export interface BoxGeometry {
   // the card boxes: present, their length (x), how far the upper one is from the lower, and the shell's seam
   panel_t?: number; pages_z?: number; inlay_d?: number; face_z?: number; gems?: number; gem_x0?: number; gem_x1?: number; gem_y0?: number; gem_y1?: number;
   boxes?: number; box_len?: number; box_dy?: number; seam_z?: number; cover_up?: number;
+  // robot (robot.scad): one servo hinge opening open_deg; the bay's lid top, the bezel's seat, the display's face (z)
+  robot?: number; eye_d?: number; bay_depth?: number; open_deg?: number; lid_z?: number; eye_z?: number; screen_z?: number;
 }

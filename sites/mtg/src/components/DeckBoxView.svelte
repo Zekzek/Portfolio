@@ -148,7 +148,10 @@
         g.boxes ? part("box", 0xe8e2d4) : Promise.resolve(null), part("gem", 0xa64dff),
         part("spine_mana", 0xf4f4f4),
       ]);
-      if (!tray || !spine || !cover) throw new Error("missing parts (built before the print-step names? rebuild the box)");
+      // robot (robot.scad, Codie's): the spine is part of the base, one servo-driven hinge, an electronics bay in the
+      // front cover (bay_lid) and a round display for an eye (eye_bezel)
+      const robot = !!g.robot;
+      if (!tray || (!spine && !robot) || !cover) throw new Error("missing parts (built before the print-step names? rebuild the box)");
       if (!g.boxes) throw new Error("this box was built for the older tray design; rebuild it");
       // Everything below is in deckbox.scad's axes (Z up); the model group turns that into three.js's Y up.
       const model = new THREE.Group();
@@ -160,9 +163,9 @@
 
       // The STLs come lying on their outside faces, as printed; these put them back where they go.
       // spine: printed = rotate -90 about Y, then up by spine_s. cover: printed = flipped about Y, then up by thick.
-      spine.rotation.y = Math.PI / 2;
-      spine.position.x = -g.spine_s;
-      for (const m of [label, manaInlay]) if (m) { m.rotation.y = Math.PI / 2; m.position.x = -g.spine_s; }
+      // (robot: no spine part; the spine's label prints in place with the base)
+      if (spine) { spine.rotation.y = Math.PI / 2; spine.position.x = -g.spine_s; }
+      if (!robot) for (const m of [label, manaInlay]) if (m) { m.rotation.y = Math.PI / 2; m.position.x = -g.spine_s; }
       // cover_up: the front half prints face up in one piece (its seam on the bed), so it only goes back up by seam_z
       const coverUp = !!g.cover_up;
       for (const m of [cover, coverPages, inlayWhite, inlayGlow, inlayBorder]) if (m) {
@@ -182,8 +185,29 @@
       const front = hinge(g.axis_front);
       book.add(tray, back.pivot);
       if (pages) book.add(pages);
-      back.local.add(spine, front.pivot);
-      for (const m of [label, manaInlay]) if (m) back.local.add(m);
+      if (spine) back.local.add(spine);
+      back.local.add(front.pivot);
+      for (const m of [label, manaInlay]) if (m) (robot ? book : back.local).add(m);
+      if (robot) {
+        // bay_lid prints bay side down (mirrored in z from where it goes); eye_bezel prints at the origin
+        const [lid, bezel] = await Promise.all([part("bay_lid", 0x202020), part("eye_bezel", 0xc9a227)]);
+        if (lid) { lid.scale.z = -1; lid.position.z = g.lid_z ?? 0; front.local.add(lid); }
+        if (bezel) { bezel.position.set(g.window_x, g.window_y, g.eye_z ?? g.thick); front.local.add(bezel); }
+        // the display behind the window, drawn as an eye looking out
+        const eye = new THREE.Group();
+        eye.position.set(g.window_x, g.window_y, (g.screen_z ?? g.thick) - 0.5);
+        const r = (g.eye_d ?? 40) / 2 + 1;
+        const disc = (rad: number, color: number, z: number) => {
+          const m = new THREE.Mesh(new THREE.CircleGeometry(rad, 64), new THREE.MeshBasicMaterial({ color }));
+          m.position.z = z;
+          eye.add(m);
+        };
+        disc(r, 0x10131c, 0);
+        disc(r * 0.62, 0x2f6fd0, 0.05);
+        disc(r * 0.5, 0x5fa8ff, 0.1);
+        disc(r * 0.26, 0x050608, 0.15);
+        front.local.add(eye);
+      }
       front.local.add(cover);
       if (coverPages) front.local.add(coverPages);
       if (inlayWhite) front.local.add(inlayWhite);
@@ -281,7 +305,8 @@
       if (g.back_display) display(book, g.back_z ?? 1.6, backImage, true, backSize);
 
       // The cover swings up on its own hinge first (its walls clear the boxes that way), then the spine folds down.
-      setOpen = (v) => {
+      // (robot: one hinge, the cover opening as far as the servo takes it)
+      setOpen = robot ? (v) => { front.pivot.rotation.y = -v * (g.open_deg ?? 105) * Math.PI / 180; } : (v) => {
         front.pivot.rotation.y = -Math.min(1, v * 2) * Math.PI / 2;
         back.pivot.rotation.y = -Math.max(0, v * 2 - 1) * Math.PI / 2;
       };
@@ -380,7 +405,7 @@
     <p class="meta mono">
       {w} × {h} × {t} mm{box.capacity ? ` · holds ${box.capacity} sleeved cards in two stacks` : ""} · this deck: {box.cards}
       ({box.counted.deck} deck{box.counted.tokens ? ` + ${box.counted.tokens} tokens` : ""}{box.counted.extra ? ` + ${box.counted.extra} extra` : ""}){box.counted.commander ? " + commander in a hard sleeve in the cover" : ""}{box.backCard ? ` + ${box.backCard} in the back cover` : box.backInsert ? " + a printed card in the back cover" : box.geometry?.back_display ? " · a hard sleeve in the back cover for any card" : ""}
-      · {box.geometry?.magnets ?? 4} magnet pairs {box.magnet[0]}×{box.magnet[1]} mm · hinge pins: pipe cleaners{hasBoxes ? " · two card boxes inside, open toward the spine" : ""}
+      {#if box.geometry?.robot}· animatronic: a servo-driven hinge in the spine, an electronics bay in the cover behind a {box.geometry.eye_d} mm round display (the eye){:else}· {box.geometry?.magnets ?? 4} magnet pairs {box.magnet[0]}×{box.magnet[1]} mm · hinge pins: pipe cleaners{/if}{hasBoxes ? " · two card boxes inside, open toward the spine" : ""}
     </p>
     <button class="btn quiet" onclick={toggleFull} aria-pressed={isFull} title={isFull ? "Leave fullscreen (Esc)" : "Fill the screen"}>
       {isFull ? "Exit fullscreen" : "Fullscreen"}
