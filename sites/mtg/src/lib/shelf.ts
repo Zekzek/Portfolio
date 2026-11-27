@@ -1,4 +1,5 @@
 import { proxyFor } from "./proxies";
+import { boxLabel } from "./box";
 import type { Cards, Deck, Proxies } from "./types";
 
 /** How a deck's book looks on the shelf: the colors its box is printed in (DeckBox/decks/<deck>.json), or,
@@ -19,7 +20,7 @@ const PLAIN: Record<string, string> = { W: "#8a8170", U: "#24466b", B: "#2b2b30"
 
 export function bookLook(deck: Deck): BookLook {
   const c = deck.box?.colors;
-  const title = (deck.box?.label || deck.name).toUpperCase();
+  const title = (boxLabel(deck.box) || deck.name).toUpperCase();
   if (c?.spine) {
     return { spine: c.spine, label: c.spine_label ?? "#f4f4f4", band: c.cover_border ?? c.spine_label ?? "#d0703a",
       frame: c.cover_frame ?? c.spine_label ?? "#f4f4f4", back: c.base ?? c.spine,

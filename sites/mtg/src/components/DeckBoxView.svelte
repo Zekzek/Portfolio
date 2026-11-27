@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onDestroy, onMount } from "svelte";
   import type { DeckBox } from "../lib/types";
+  import { boxLabel } from "../lib/box";
   import { LOCAL_SERVER, authHeaders } from "../lib/connection.svelte";
 
   // backSize: the back card's size in mm when it isn't a Magic card (a printed insert, box.backInsert).
@@ -82,7 +83,7 @@
   async function download(name: string, url: string) {
     try {
       const href = URL.createObjectURL(new Blob([await fetchPart(url)], { type: "model/stl" }));
-      const a = Object.assign(document.createElement("a"), { href, download: `${box.label ?? "deckbox"}-${name}.stl` });
+      const a = Object.assign(document.createElement("a"), { href, download: `${boxLabel(box) ?? "deckbox"}-${name}.stl` });
       a.click();
       setTimeout(() => URL.revokeObjectURL(href), 10000);
     } catch (e) {
@@ -406,7 +407,7 @@
       {#each prints as [print, files] (print)}
         <span class="print" aria-label="{print} print">
           {#each files as [name, url] (name)}
-            <a class="btn" href={url} download="{box.label ?? 'deckbox'}-{name}.stl" onclick={(e) => { e.preventDefault(); download(name, url); }}>{name}.stl{times(name)}</a>
+            <a class="btn" href={url} download="{boxLabel(box) ?? 'deckbox'}-{name}.stl" onclick={(e) => { e.preventDefault(); download(name, url); }}>{name}.stl{times(name)}</a>
           {/each}
         </span>
       {/each}

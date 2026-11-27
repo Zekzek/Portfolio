@@ -5,7 +5,7 @@
   import { ApiError, editDeck, revertDeck } from "../lib/api";
   import { editable } from "../lib/connection.svelte";
   import { artCount, coverage, deckArt, proxyFor } from "../lib/proxies";
-  import { BOX_STYLE_NAMES, boxStyles, shownBoxStyle } from "../lib/box";
+  import { BOX_STYLE_NAMES, boxLabel, boxStyles, shownBoxStyle } from "../lib/box";
   import type { BackFace, Cards, Deck, DeckArt, DeckEntry, EditOp, Proxies } from "../lib/types";
   import AddCard from "./AddCard.svelte";
   import CardDialog from "./CardDialog.svelte";
@@ -385,7 +385,7 @@
           </div>
         {/if}
         {#if showBox && deck.box && boxStyle === "beetle" && deck.box.beetle}
-          <BeetleView beetle={deck.box.beetle} label={deck.box.label} onClose={() => (showBox = false)} />
+          <BeetleView beetle={deck.box.beetle} label={boxLabel(deck.box)} onClose={() => (showBox = false)} />
         {:else if showBox && deck.box}
           <DeckBoxView box={deck.box} colors={deck.colors} commanderImage={deck.commanders[0] ? imageFor(deck.commanders[0].name) : null} backImage={deck.box.backInsert?.image ?? (deck.box.backCard ? imageFor(deck.box.backCard) : null)} backSize={deck.box.backInsert ? [deck.box.backInsert.w, deck.box.backInsert.h] : null} onClose={() => (showBox = false)} />
         {/if}

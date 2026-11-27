@@ -8,6 +8,8 @@ describe("book look", () => {
   it("uses the printed box's colors", () => {
     const d = deck({ box: { label: "Amalia B.", colors: { spine: "#3b2a5c", spine_label: "#e8c06a", cover_border: "#e8c06a", cover_frame: "#e8c06a", base: "#3b2a5c" } } as never });
     expect(bookLook(d)).toMatchObject({ spine: "#3b2a5c", label: "#e8c06a", band: "#e8c06a", title: "AMALIA B.", printed: true });
+    // box.json can set the name on several lines
+    expect(bookLook(deck({ box: { label: ["Amalia", "B."] } as never })).title).toBe("AMALIA B.");
   });
   it("gives a deck without a box a plain binding in its first color", () => {
     expect(bookLook(deck({ colors: "UR" }))).toMatchObject({ spine: "#24466b", title: "AMALIA", printed: false });

@@ -202,7 +202,7 @@ export interface DeckBox {
   backInsert?: { image: string; w: number; h: number } | null; // a printed card there instead (DeckBox/print), mm
   colors?: Record<string, string> | null; // part -> the filament color planned for it ("base_pages": the back half's walls)
   outside: [number, number, number]; // mm: width x height x thickness, closed
-  label?: string | null;
+  label?: string | string[] | null; // the spine's name; a list when it's set on several lines
   magnet: [number, number]; // diameter x height, mm
   lid?: string; // "book"
   geometry?: BoxGeometry | null;

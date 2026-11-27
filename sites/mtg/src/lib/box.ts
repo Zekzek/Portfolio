@@ -1,5 +1,12 @@
 import type { BoxStyle, DeckBox } from "./types";
 
+/** The spine's name as one line (box.json may give it as a list of lines). */
+export function boxLabel(box: DeckBox | null | undefined): string | null {
+  const l = box?.label;
+  if (Array.isArray(l)) return l.join(" ").trim() || null;
+  return l || null;
+}
+
 export const BOX_STYLE_NAMES: Record<BoxStyle, string> = { book: "Book", beetle: "Beetle (experiment)" };
 
 /** The box styles built for a deck, the book first. */
