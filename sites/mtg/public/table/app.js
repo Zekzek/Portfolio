@@ -9,7 +9,8 @@ const SLOT_COUNT = 4;
 const TARGETS = {
   lcd:    { w: 320, h: 480, label: 'LCD 4" · 320×480' },
   grey:   { w: 540, h: 960, label: 'E-paper 4.7" greyscale · 540×960', grey: true },
-  epaper: { w: 400, h: 600, label: 'E-paper 4" colour · 400×600', dither: true },
+  nfc:    { w: 300, h: 400, label: 'NFC tag 4.2" black & white · 300×400', pal: 'bw' },
+  epaper: { w: 400, h: 600, label: 'E-paper 4" colour · 400×600', pal: 'spectra6' },
   phone:  { w: 672, h: 936, label: 'Phone · full size' },
 };
 
@@ -355,7 +356,7 @@ function drawSym(ctx, sym, x, cy, fs) {
 
 async function renderText(base, ctx, W, H, f, o, note) {
   const pad = W * 0.05;
-  base.fillStyle = '#fbfaf6'; base.fillRect(0, 0, W, H);
+  base.fillStyle = paper; base.fillRect(0, 0, W, H);
   ctx.textBaseline = 'middle';
   let y = pad;
 
@@ -482,6 +483,8 @@ function changesFooter(ctx, W, H, top, o) {
 }
 
 const SPECTRA6 = [[25, 30, 33], [232, 232, 226], [239, 222, 68], [178, 19, 24], [33, 87, 186], [18, 95, 32]];
+const PALETTES = { spectra6: SPECTRA6, bw: [[0, 0, 0], [255, 255, 255]] };   // [1] is each panel's white
+let paper = '#fbfaf6';
 function dither(ctx, W, H, pal = SPECTRA6) {
   const img = ctx.getImageData(0, 0, W, H), d = img.data;
   const buf = new Float32Array(W * H * 3);
@@ -537,24 +540,29 @@ async function renderSlot(i) {
   const seq = ++renderSeq[i];
   const layer = (w = T.w, h = T.h) => {
     const c = document.createElement('canvas'); c.width = w; c.height = h;
-    return c.getContext('2d', { willReadFrequently: !!(T.dither || T.grey) });
+    return c.getContext('2d', { willReadFrequently: !!(T.pal || T.grey) });
   };
   const base = layer(), over = layer();
+  // Background in the panel's own white, so it doesn't dither into speckles.
+  paper = T.pal ? `rgb(${PALETTES[T.pal][1].join(',')})` : T.grey ? '#fff' : '#fbfaf6';
   if (s.card) {
     const f = faceOf(s), o = applyOv(f, s.ov);
-    const cardH = Math.round(T.w * 936 / 672);
+    // The card image keeps its own shape (672:936), fitted inside the screen.
+    const cw = Math.min(T.w, Math.round(T.h * 672 / 936)), ch = Math.min(T.h, Math.round(cw * 936 / 672));
     if (s.view === 'text') await renderText(base, over, T.w, T.h, f, o);
-    else if (T.h > cardH * 1.04) {
-      // Display taller than a card: card on top (centred if nothing changed), changes listed below it.
-      const cb = layer(T.w, cardH), co = layer(T.w, cardH);
-      await renderImage(cb, co, T.w, cardH, f, o);
+    else if (cw >= T.w - 1 && ch >= T.h - 1) await renderImage(base, over, T.w, T.h, f, o);
+    else {
+      const cb = layer(cw, ch), co = layer(cw, ch);
+      await renderImage(cb, co, cw, ch, f, o);
       const c = o.changed, any = c.pt || c.type || c.colors || c.name || o.addText || o.token;
-      const top = any ? 0 : Math.round((T.h - cardH) / 2);
-      base.fillStyle = '#fbfaf6'; base.fillRect(0, 0, T.w, T.h);
-      base.drawImage(cb.canvas, 0, top); over.drawImage(co.canvas, 0, top);
-      if (any) changesFooter(over, T.w, T.h, cardH, o);
-    } else await renderImage(base, over, T.w, T.h, f, o);
-    if (T.dither) { dither(base, T.w, T.h); quantize(over, T.w, T.h); }
+      // Much taller than a card: card on top, the changes listed large below it. Otherwise centred.
+      const footer = any && T.h - ch > T.h * 0.1;
+      const x = Math.round((T.w - cw) / 2), top = footer ? 0 : Math.round((T.h - ch) / 2);
+      base.fillStyle = (T.pal || T.grey) ? paper : '#000'; base.fillRect(0, 0, T.w, T.h);
+      base.drawImage(cb.canvas, x, top); over.drawImage(co.canvas, x, top);
+      if (footer) changesFooter(over, T.w, T.h, ch, o);
+    }
+    if (T.pal) { dither(base, T.w, T.h, PALETTES[T.pal]); quantize(over, T.w, T.h, PALETTES[T.pal]); }
     base.drawImage(over.canvas, 0, 0);
     if (T.grey) grey16(base, T.w, T.h);
   }
