@@ -8,6 +8,7 @@ const SLOT_COUNT = 4;
 
 const TARGETS = {
   lcd:    { w: 320, h: 480, label: 'LCD 4" · 320×480' },
+  grey:   { w: 540, h: 960, label: 'E-paper 4.7" greyscale · 540×960', grey: true },
   epaper: { w: 400, h: 600, label: 'E-paper 4" colour · 400×600', dither: true },
   phone:  { w: 672, h: 936, label: 'Phone · full size' },
 };
@@ -213,6 +214,13 @@ function colorDots(ctx, colors, x, cy, r) {
     ctx.beginPath(); ctx.arc(x + r, cy, r, 0, Math.PI * 2);
     ctx.fillStyle = MANA[c]; ctx.fill();
     ctx.lineWidth = Math.max(1, r * 0.18); ctx.strokeStyle = '#0008'; ctx.stroke();
+    if (r >= 5) {   // the letter too, so colours still read on a greyscale panel
+      const f = ctx.font, a = ctx.textAlign, b = ctx.textBaseline;
+      ctx.font = `800 ${Math.round(r * 1.25)}px system-ui, sans-serif`;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = MANA_INK[c];
+      ctx.fillText(c, x + r, cy + r * 0.05);
+      ctx.font = f; ctx.textAlign = a; ctx.textBaseline = b;
+    }
     x += r * 2 + r * 0.5;
   }
   return x;
@@ -427,6 +435,52 @@ async function renderText(base, ctx, W, H, f, o, note) {
 }
 
 // Spectra 6 e-paper: 6 inks, Floyd-Steinberg so the preview looks like the panel will.
+// 16-level greyscale e-paper (e.g. LilyGo T5 4.7"): luminance, Floyd-Steinberg to 16 greys.
+// Unlike the colour panel, edges keep in-between greys, so text stays smooth.
+function grey16(ctx, W, H) {
+  const img = ctx.getImageData(0, 0, W, H), d = img.data;
+  const buf = new Float32Array(W * H);
+  for (let i = 0, j = 0; i < d.length; i += 4, j++) buf[j] = d[i] * 0.299 + d[i + 1] * 0.587 + d[i + 2] * 0.114;
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const j = y * W + x, v = buf[j];
+    const q = Math.max(0, Math.min(255, Math.round(v / 17) * 17)), e = v - q;
+    const i = j * 4; d[i] = d[i + 1] = d[i + 2] = q;
+    if (x + 1 < W) buf[j + 1] += e * 7 / 16;
+    if (y + 1 < H) {
+      if (x > 0) buf[j + W - 1] += e * 3 / 16;
+      buf[j + W] += e * 5 / 16;
+      if (x + 1 < W) buf[j + W + 1] += e / 16;
+    }
+  }
+  ctx.putImageData(img, 0, 0);
+}
+
+// Below a card image on a display taller than a card: the changed values again, large.
+function changesFooter(ctx, W, H, top, o) {
+  const c = o.changed, lines = [];
+  if (c.pt) lines.push(`${o.power ?? '?'}/${o.toughness ?? '?'}`);
+  if (c.type || c.colors) lines.push(o.type_line);
+  if (c.name) lines.push(o.name);
+  if (o.addText) lines.push('+ ' + o.addText);
+  if (o.token) lines.push('Token');
+  const pad = W * 0.05;
+  let fs = Math.round(W * 0.075), wrapped;
+  for (; fs > 12; fs -= 2) {
+    ctx.font = `700 ${fs}px system-ui, sans-serif`;
+    wrapped = lines.flatMap((l) => wrapPlain(ctx, l, W - pad * 2 - (c.colors ? fs * 1.4 : 0)));
+    if (wrapped.length * fs * 1.25 <= H - top - pad * 1.5) break;
+  }
+  ctx.fillStyle = ACCENT; ctx.fillRect(pad, top + pad * 0.5, W - pad * 2, Math.max(2, W * 0.006));
+  ctx.textBaseline = 'middle';
+  let y = top + pad;
+  if (c.colors) colorDots(ctx, o.colors, pad, y + fs * 0.62, fs * 0.42);
+  for (const l of wrapped) {
+    ctx.fillStyle = '#111';
+    ctx.fillText(l, pad + (c.colors ? fs * 1.4 : 0), y + fs * 0.62);
+    y += fs * 1.25;
+  }
+}
+
 const SPECTRA6 = [[25, 30, 33], [232, 232, 226], [239, 222, 68], [178, 19, 24], [33, 87, 186], [18, 95, 32]];
 function dither(ctx, W, H, pal = SPECTRA6) {
   const img = ctx.getImageData(0, 0, W, H), d = img.data;
@@ -481,17 +535,28 @@ async function renderSlot(i) {
   const s = state.slots[i], cv = canvases[i];
   const T = TARGETS[s.target] || TARGETS.lcd;
   const seq = ++renderSeq[i];
-  const layer = () => {
-    const c = document.createElement('canvas'); c.width = T.w; c.height = T.h;
-    return c.getContext('2d', { willReadFrequently: !!T.dither });
+  const layer = (w = T.w, h = T.h) => {
+    const c = document.createElement('canvas'); c.width = w; c.height = h;
+    return c.getContext('2d', { willReadFrequently: !!(T.dither || T.grey) });
   };
   const base = layer(), over = layer();
   if (s.card) {
     const f = faceOf(s), o = applyOv(f, s.ov);
+    const cardH = Math.round(T.w * 936 / 672);
     if (s.view === 'text') await renderText(base, over, T.w, T.h, f, o);
-    else await renderImage(base, over, T.w, T.h, f, o);
+    else if (T.h > cardH * 1.04) {
+      // Display taller than a card: card on top (centred if nothing changed), changes listed below it.
+      const cb = layer(T.w, cardH), co = layer(T.w, cardH);
+      await renderImage(cb, co, T.w, cardH, f, o);
+      const c = o.changed, any = c.pt || c.type || c.colors || c.name || o.addText || o.token;
+      const top = any ? 0 : Math.round((T.h - cardH) / 2);
+      base.fillStyle = '#fbfaf6'; base.fillRect(0, 0, T.w, T.h);
+      base.drawImage(cb.canvas, 0, top); over.drawImage(co.canvas, 0, top);
+      if (any) changesFooter(over, T.w, T.h, cardH, o);
+    } else await renderImage(base, over, T.w, T.h, f, o);
     if (T.dither) { dither(base, T.w, T.h); quantize(over, T.w, T.h); }
     base.drawImage(over.canvas, 0, 0);
+    if (T.grey) grey16(base, T.w, T.h);
   }
   const off = base.canvas;
   if (seq !== renderSeq[i]) return;   // a newer render won
@@ -520,7 +585,11 @@ function drawThumb(i) {
   const t = el.querySelector('canvas'), ctx = t.getContext('2d');
   ctx.clearRect(0, 0, t.width, t.height);
   const s = state.slots[i];
-  if (s.card) ctx.drawImage(canvases[i], 0, 0, t.width, t.height);
+  if (s.card) {
+    const src = canvases[i], k = Math.min(t.width / src.width, t.height / src.height);
+    const w = src.width * k, h = src.height * k;
+    ctx.drawImage(src, (t.width - w) / 2, (t.height - h) / 2, w, h);
+  }
   el.querySelector('span').textContent = s.card ? faceOf(s).name : 'empty';
 }
 
